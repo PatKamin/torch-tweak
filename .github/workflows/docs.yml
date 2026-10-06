@@ -1,0 +1,52 @@
+name: Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: &docs-paths
+      - "torch_tweak/**"
+      - "docs/**"
+      - "examples/**/README.md"
+      - "scripts/rewrite_links_to_repo.py"
+      - "scripts/stage_docs.py"
+      - "properdocs.yml"
+      - "ChangeLog.md"
+      - "CONTRIBUTING.md"
+      - "LICENSE"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths: *docs-paths
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name }}-
+      ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-docs:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install doc dependencies
+        run: uv sync --no-default-groups --extra doc
+
+      - name: Build docs
+        run: uv run --no-default-groups --extra doc properdocs build

@@ -1,0 +1,165 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    - cron: "0 22 * * 1-5"  # 22:00 UTC, Monday-Friday
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/nightly.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  # This group incl. PR, because we test this workflow from time to time on PR.
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name }}-
+      ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly:
+    name: Nightly
+    runs-on: [BMG]
+    # run only on upstream; forks won't have the HW
+    if: github.repository == 'intel/torch-tweak'
+    container:
+      image: ubuntu:26.04
+      options: >-
+        --device=/dev/dri
+      volumes:
+        - ${{ github.workspace }}:${{ github.workspace }}
+      credentials:
+        username: ${{ secrets.GH_BB_DOCKER_USERNAME }}
+        password: ${{ secrets.GH_BB_DOCKER_TOKEN }}
+
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: torch-tweak
+
+      - name: Install drivers and required packages
+        run: |
+          # extra proxy inherited to docker has to be removed
+          unset no_proxy
+          unset NO_PROXY
+
+          apt-get update -y
+          apt-get install -y software-properties-common
+          add-apt-repository -y ppa:kobuk-team/intel-graphics
+          apt-get update -y
+          apt-get install -y \
+            build-essential \
+            clinfo \
+            git \
+            intel-gsc \
+            intel-media-va-driver-non-free \
+            intel-metrics-discovery \
+            intel-ocloc \
+            intel-opencl-icd \
+            libmfx-gen1 \
+            libva-glx2 \
+            libvpl2 \
+            libvpl-tools \
+            libze1 \
+            libze-dev \
+            libze-intel-gpu1 \
+            python3 \
+            python3-pip \
+            python3-venv \
+            va-driver-all \
+            vainfo
+
+      - name: Create venv
+        run: |
+          python3 -m venv /opt/venv
+          echo "/opt/venv/bin" >> $GITHUB_PATH
+
+      # Install xpu (important!) and dev dependencies (they include tests' deps plus extras for CI).
+      - name: Install Torch Tweak
+        working-directory: torch-tweak
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+          python3 -m pip install \
+            --index-url https://download.pytorch.org/whl/xpu \
+            --extra-index-url https://pypi.org/simple \
+            -e ".[xpu,dev]"
+
+      - name: Run functional tests
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+          TORCH_TWEAK_TESTS_LOG_LEVEL: DEBUG
+        working-directory: torch-tweak
+        run: |
+          python3 -m pytest -m nightly
+
+      - name: Run examples
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+        working-directory: torch-tweak
+        run: |
+          echo "::group::resnet"
+
+          cd examples/ResNet
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::ParakeetCTC"
+
+          cd examples/ParakeetCTC
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::ParakeetRNNT"
+
+          cd examples/ParakeetRNNT
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::ESM2"
+
+          cd examples/ESM2
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::flux"
+
+          cd examples/FLUX
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::llm_all"
+
+          cd examples/LLM
+          uv sync
+          uv run benchmark-all --model_id microsoft/Phi-3-mini-4k-instruct
+          cd -
+
+          echo "::endgroup::"
+          echo "::group::stable_diffusion"
+
+          cd examples/StableDiffusion
+          uv sync
+          uv run tune
+          uv run inference
+          cd -
+
+          echo "::endgroup::"

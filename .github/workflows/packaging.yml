@@ -1,0 +1,73 @@
+name: Packaging
+
+# Builds every distribution the repository can produce and checks that each one
+# carries the Apache-2.0 license text and the upstream attribution notices.
+# Build backends stay silent when those files go missing, so the artifacts are
+# inspected explicitly.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: &packaging-paths
+      - "LICENSE"
+      - "third-party-programs.txt"
+      - "pyproject.toml"
+      - "examples/*/LICENSE"
+      - "examples/*/third-party-programs.txt"
+      - "examples/*/pyproject.toml"
+      - ".github/scripts/check_dist_licenses.py"
+      - ".github/workflows/packaging.yml"
+  pull_request:
+    paths: *packaging-paths
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name }}-
+      ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # setuptools_scm derives the core package version from the git history.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Install uv
+        run: python3 -m pip install uv
+
+      # Each example keeps its own copy of the two files, so they must stay
+      # byte-for-byte identical to the ones at the repository root.
+      - name: Verify example license copies are up to date
+        run: |
+          for example in examples/*/pyproject.toml; do
+            dir="$(dirname "${example}")"
+            diff -q LICENSE "${dir}/LICENSE"
+            diff -q third-party-programs.txt "${dir}/third-party-programs.txt"
+          done
+
+      - name: Build core distributions
+        run: uv build --out-dir dist/core
+
+      - name: Build example distributions
+        run: |
+          for example in examples/*/pyproject.toml; do
+            uv build "$(dirname "${example}")" --out-dir dist/examples
+          done
+
+      - name: Verify license files in all distributions
+        run: python3 .github/scripts/check_dist_licenses.py --canonical dist/core/* dist/examples/*

@@ -1,0 +1,142 @@
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: &tests-paths
+      - "torch_tweak/**"
+      - "examples/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "conftest.py"
+      - "uv.lock"
+      - ".github/workflows/tests.yml"
+  pull_request:
+    paths: *tests-paths
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.event_name }}-
+      ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yml
+
+  tests:
+    name: Tests
+    needs: lint
+    runs-on: [BMG]
+    # run only on upstream; forks won't have the HW
+    if: github.repository == 'intel/torch-tweak'
+    timeout-minutes: 30
+    container:
+      image: ubuntu:26.04
+      options: >-
+        --device=/dev/dri
+      volumes:
+        - ${{ github.workspace }}:${{ github.workspace }}
+      credentials:
+        username: ${{ secrets.GH_BB_DOCKER_USERNAME }}
+        password: ${{ secrets.GH_BB_DOCKER_TOKEN }}
+
+    steps:
+      - name: Checkout Torch Tweak repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: torch-tweak
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Install drivers and required packages
+        run: |
+          # extra proxy inherited to docker has to be removed
+          unset no_proxy
+          unset NO_PROXY
+
+          apt-get update -y
+          apt-get install -y software-properties-common
+          add-apt-repository -y ppa:kobuk-team/intel-graphics
+          apt-get update -y
+          apt-get install -y \
+            build-essential \
+            clinfo \
+            git \
+            intel-gsc \
+            intel-media-va-driver-non-free \
+            intel-metrics-discovery \
+            intel-ocloc \
+            intel-opencl-icd \
+            libmfx-gen1 \
+            libva-glx2 \
+            libvpl2 \
+            libvpl-tools \
+            libze1 \
+            libze-dev \
+            libze-intel-gpu1 \
+            va-driver-all \
+            vainfo
+
+          pip install uv
+
+      # Install xpu (important!) and dev dependencies (they include tests' deps plus extras for CI).
+      - name: Install Torch Tweak
+        working-directory: torch-tweak
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+          uv sync --extra xpu --extra dev
+
+      - name: Run unit tests and library doctests
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+          TORCH_TWEAK_TESTS_LOG_LEVEL: DEBUG
+        working-directory: torch-tweak
+        run: |
+          # Uses [tool.pytest.ini_options] testpaths and --doctest-modules from pyproject.toml.
+          uv run pytest -v -m "not functional and not nightly"
+
+      - name: Run functional tests
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+          TORCH_TWEAK_TESTS_LOG_LEVEL: DEBUG
+        working-directory: torch-tweak
+        run: |
+          uv run pytest -m functional
+
+      - name: Run examples
+        env:
+          ONEAPI_DEVICE_SELECTOR: level_zero:gpu
+        working-directory: torch-tweak
+        run: |
+          echo "::group::minimal"
+          uv run python examples/Minimal/demo.py
+          echo "::endgroup::"
+
+          echo "::group::llm"
+          cd examples/LLM
+          uv run pip install \
+            --index-url https://download.pytorch.org/whl/xpu \
+            --extra-index-url https://pypi.org/simple \
+            .
+          tune --model_id microsoft/Phi-3-mini-4k-instruct
+          benchmark --model_id microsoft/Phi-3-mini-4k-instruct --sequence_lengths "128,1024"
+          cd -
+          echo "::endgroup::"
+
+          echo "::group::e5large"
+          cd examples/E5Large
+          uv sync
+          uv run tune
+          uv run inference --prompt "query: What is the capital city of France?"
+          cd -
+          echo "::endgroup::"

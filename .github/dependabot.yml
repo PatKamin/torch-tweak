@@ -1,0 +1,45 @@
+# Run dependencies versions update
+version: 2
+
+updates:
+  - package-ecosystem: "uv"
+    directories:
+      - "/"
+      - "/examples/*/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      test-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "pytest*"
+      doc-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "properdocs*"
+          - "mike*"
+          - "GitPython"
+      dev-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      github-actions-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
