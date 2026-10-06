@@ -1,15 +1,18 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # Tune Strategies Guide
 
-Tune strategies determine how AITune selects and configures backends during the tuning process. They provide flexibility in balancing performance, reliability, and tuning time.
+Tune strategies determine how Torch Tweak selects and configures backends during the tuning process. They provide flexibility in balancing performance, reliability, and tuning time.
 
 ## Overview
 
-AITune provides three built-in strategies:
+Torch Tweak provides three built-in strategies:
 
 - **OneBackendStrategy**: Uses a single specified backend
 - **FirstWinsStrategy**: Tries backends in order, uses the first that succeeds
@@ -19,10 +22,10 @@ AITune provides three built-in strategies:
 
 Not every backend can successfully tune every model. Each backend relies on a different compilation or export technology, and each has its own limitations:
 
-- **TensorRT** requires exporting the model to ONNX. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during ONNX export or TensorRT engine building. Memory constraints can also prevent the engine from being built.
+- **OpenVINO** requires converting the model to an OpenVINO representation. Models with unsupported operators, complex dynamic control flow, or symbolic shape constraints may fail during conversion or model compilation. Memory constraints can also prevent the model from being compiled.
 - **Torch Inductor** uses `torch.compile`, which may encounter *graph breaks* on unsupported Python constructs or operations, causing partial or failed compilation.
 - **TorchAO** applies quantization transformations that may not support all layer types or model architectures.
-- **Torch-TensorRT** combines PyTorch's compiler with TensorRT, inheriting potential limitations from both.
+- **Torch Eager** runs the module unchanged, so it always succeeds, which makes it a useful last-resort fallback.
 
 Because of these differences, a backend that fails on one model may succeed on another, and vice versa. This is the core motivation behind strategies like `FirstWinsStrategy`: by trying multiple backends in priority order, you get automatic fallback when your preferred backend cannot handle a particular model.
 
@@ -46,19 +49,19 @@ Uses exactly one backend, failing immediately with the original error if it cann
 ### Usage
 
 ```python
-from aitune.torch.backend import TensorRTBackend, TensorRTBackendConfig
-import aitune.torch as ait
+from torch_tweak.torch.backend import TorchInductorBackend, TorchInductorBackendConfig
+import torch_tweak.torch as tt
 
 # Configure backend
-config = TensorRTBackendConfig()
-backend = TensorRTBackend(config)
+config = TorchInductorBackendConfig(mode="default")
+backend = TorchInductorBackend(config)
 
 # Create strategy
-strategy = ait.OneBackendStrategy(backend=backend)
+strategy = tt.OneBackendStrategy(backend=backend)
 
 # Use in tuning
-model = ait.Module(model, "my-model", strategy=strategy)
-ait.tune(model, input_data)
+model = tt.Module(model, "my-model", strategy=strategy)
+tt.tune(model, input_data)
 ```
 
 ### When to Use
@@ -78,37 +81,37 @@ ait.tune(model, input_data)
 
 ## FirstWinsStrategy
 
-Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. List backends from fastest to most compatible — for example, TensorRT first, then Torch Inductor.
+Tries backends in priority order and returns the first one that successfully builds and validates. If a backend fails, the strategy moves on to the next candidate instead of aborting. If all backends fail, the error is caught and the original model is used as-is. List backends from fastest to most compatible - for example, OpenVINO first, then Torch Inductor.
 
 ### Usage
 
 ```python
-from aitune.torch.backend import (
-    TensorRTBackend,
-    TensorRTBackendConfig,
+from torch_tweak.torch.backend import (
+    TorchAOBackend,
+    TorchAOBackendConfig,
     TorchInductorBackend,
 )
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # List backends in priority order (fastest → most compatible)
 backends = [
-    TensorRTBackend(config=TensorRTBackendConfig()),  # Best performance, but may not support all models
-    TorchInductorBackend(),                            # Good performance, broader compatibility
+    TorchAOBackend(config=TorchAOBackendConfig(quantization="fp8wo")),  # Quantization: fast inference
+    TorchInductorBackend(),  # Good performance, broader compatibility
 ]
 
 # Create strategy
-strategy = ait.FirstWinsStrategy(backends=backends)
+strategy = tt.FirstWinsStrategy(backends=backends)
 
 # Use in tuning
-model = ait.Module(model, "my-model", strategy=strategy)
-ait.tune(model, input_data)
+model = tt.Module(model, "my-model", strategy=strategy)
+tt.tune(model, input_data)
 ```
 
 ### How It Works
 
-1. Tries first backend (e.g., TensorRT)
+1. Tries first backend (e.g., OpenVINO)
 2. If successful → uses it, done
-3. If fails (e.g., unsupported op, export error, memory limit) → tries next backend
+3. If fails (e.g., unsupported op, conversion error, memory limit) → tries next backend
 4. Repeats until a backend succeeds or all fail
 
 ### When to Use
@@ -139,31 +142,28 @@ Tries all backends, profiles their performance, and selects the fastest.
 ### Usage
 
 ```python
-from aitune.torch.backend import (
-    TensorRTBackend,
-    TensorRTBackendConfig,
+from torch_tweak.torch.backend import (
     TorchInductorBackendConfig,
     TorchInductorBackend,
     TorchAOBackend,
-    TorchAOBackendConfig
+    TorchAOBackendConfig,
 )
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # List all candidate backends
 backends = [
-    TensorRTBackend(config=TensorRTBackendConfig()),
-    TorchInductorBackend(config=TorchInductorBackendConfig(mode="max-autotune")),
+    TorchInductorBackend(config=TorchInductorBackendConfig(mode="default")),
     TorchAOBackend(config=TorchAOBackendConfig(quantization="fp8wo")),
 ]
 
 # Create strategy
-strategy = ait.HighestThroughputStrategy(
+strategy = tt.HighestThroughputStrategy(
     backends=backends,
 )
 
 # Use in tuning
-model = ait.Module(model, "my-model", strategy=strategy)
-ait.tune(model, input_data)
+model = tt.Module(model, "my-model", strategy=strategy)
+tt.tune(model, input_data)
 ```
 
 ### How It Works
@@ -201,6 +201,6 @@ ait.tune(model, input_data)
 
 ## Next Steps
 
-- Learn about specific backends: [TensorRT](../backends/tensorrt_backend.md), [Torch-TensorRT](../backends/torch_tensorrt_jit_backend.md), [TorchAO](../backends/torchao_backend.md), [Inductor](../backends/torch_inductor_backend.md)
+- Learn about specific backends: [TorchAO](../backends/torchao_backend.md), [Inductor](../backends/torch_inductor_backend.md)
 - Explore [Deployment Guide](../deployment/deployment.md)
-- Review [AOT Tuning](../aot_tuning.md) for strategy usage
+- Review the [Tuning Guide](../tuning.md)

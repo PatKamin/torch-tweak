@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Model utilities for ASR pipeline."""
 
 from copy import deepcopy
@@ -10,7 +13,7 @@ import torch
 from nemo.core.classes.common import typecheck
 from omegaconf import open_dict
 
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 
 def get_model(model_name: str = "nvidia/parakeet-rnnt-1.1b"):
@@ -49,15 +52,15 @@ def get_model(model_name: str = "nvidia/parakeet-rnnt-1.1b"):
     asr_model.change_decoding_strategy(cfg)
 
     asr_model.eval()
-    asr_model = asr_model.to("cuda")
+    asr_model = asr_model.to("xpu")
 
     # Note: Move STFT window to GPU
-    asr_model.preprocessor.featurizer.window = asr_model.preprocessor.featurizer.window.to("cuda")
+    asr_model.preprocessor.featurizer.window = asr_model.preprocessor.featurizer.window.to("xpu")
 
     return asr_model
 
 
-def wrap_pipeline(name: str, pipeline: nemo.collections.asr.models.EncDecRNNTBPEModel, strategy: ait.TuneStrategy):
+def wrap_pipeline(name: str, pipeline: nemo.collections.asr.models.EncDecRNNTBPEModel, strategy: tt.TuneStrategy):
     """Wrap modules in the pipeline.
 
     Args:
@@ -68,13 +71,13 @@ def wrap_pipeline(name: str, pipeline: nemo.collections.asr.models.EncDecRNNTBPE
     Returns:
         ASR model
     """
-    pipeline.encoder = ait.Module(
+    pipeline.encoder = tt.Module(
         pipeline.encoder,
         name=f"{name}-encoder",
         strategy=strategy,
     )
 
-    pipeline.decoder.prediction["dec_rnn"] = ait.Module(
+    pipeline.decoder.prediction["dec_rnn"] = tt.Module(
         pipeline.decoder.prediction["dec_rnn"],
         name=f"{name}-decoder-rnn",
         strategy=strategy,

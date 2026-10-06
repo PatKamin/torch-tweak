@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Test for tuned module."""
 
 from collections import OrderedDict
@@ -8,15 +10,15 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from aitune.torch.backend.backend import Backend
-from aitune.torch.backend.torch_inductor_backend import TorchInductorBackend
-from aitune.torch.config import AITuneConfig
-from aitune.torch.module.sample_metadata import SampleMetadata
-from aitune.torch.module.tuned_module import TunedModule
+from torch_tweak.torch.backend.backend import Backend
+from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
+from torch_tweak.torch.config import TorchTweakConfig
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.tuned_module import TunedModule
 
 
 def get_tuned_module(check_graph=True, strict_mode=False):
-    config = AITuneConfig()
+    config = TorchTweakConfig()
     config.strict_mode = strict_mode
     kwargs = {}
     graph1 = SampleMetadata.from_inputs((1,), kwargs, strict=strict_mode)

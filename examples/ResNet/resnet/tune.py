@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Tune ResNet model."""
 
 import os
@@ -8,20 +11,16 @@ from logging import basicConfig, getLogger
 import torch
 from PIL import Image
 
-from aitune.torch import HighestThroughputStrategy, LocalTorchStorage, Module, save, tune
-from aitune.torch.backend import (
-    ONNXAutoCastConfig,
-    ONNXQuantizationConfig,
-    TensorRTBackend,
-    TensorRTBackendConfig,
+from resnet.cmd_args import get_parser
+from resnet.model import get_model, get_transform
+from torch_tweak.torch import HighestThroughputStrategy, LocalTorchStorage, Module, save, tune
+from torch_tweak.torch.backend import (
     TorchAOBackend,
     TorchAOBackendConfig,
     TorchEagerBackend,
     TorchInductorBackend,
     TorchInductorBackendConfig,
 )
-from resnet.cmd_args import get_parser
-from resnet.model import get_model, get_transform
 
 logger = getLogger(__name__)
 
@@ -47,7 +46,7 @@ def tune_model(
     transform = get_transform(model)
 
     img = Image.open(image_path)
-    dataset = transform(img).to("cuda")
+    dataset = transform(img).to("xpu")
 
     module_name = f"example-{model_name}"
 
@@ -56,29 +55,6 @@ def tune_model(
         module_name,
         strategy=HighestThroughputStrategy(
             backends=[
-                TensorRTBackend(
-                    config=TensorRTBackendConfig(
-                        quantization_config=ONNXQuantizationConfig(
-                            precision="int8",
-                            calibration_method="max",
-                        ),
-                    ),
-                ),
-                TensorRTBackend(
-                    config=TensorRTBackendConfig(
-                        quantization_config=ONNXQuantizationConfig(
-                            precision="int8",
-                            calibration_method="max",
-                        ),
-                        use_dynamo=False,
-                    ),
-                ),
-                TensorRTBackend(config=TensorRTBackendConfig(quantization_config=ONNXAutoCastConfig(precision="fp16"))),
-                TensorRTBackend(
-                    config=TensorRTBackendConfig(
-                        quantization_config=ONNXAutoCastConfig(precision="fp16"), use_dynamo=False
-                    )
-                ),
                 # Gives 3x TRT throughput but after load if fails
                 TorchAOBackend(config=TorchAOBackendConfig(quantization="int8wo")),
                 TorchInductorBackend(
@@ -99,7 +75,7 @@ def tune_model(
 
 def main():
     """Entry point for the script."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = get_parser().parse_args()
 

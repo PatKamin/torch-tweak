@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Common command line arguments for ResNet."""
 
 import argparse
@@ -20,7 +23,7 @@ def get_parser():
     parser.add_argument(
         "--tuned-model-path",
         type=str,
-        default="resnet50.ait",
+        default="resnet50.tt",
         help="Path to save the tuned model",
     )
     parser.add_argument(

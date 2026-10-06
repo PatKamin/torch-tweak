@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for OneBackendStrategy."""
 
 from unittest.mock import MagicMock
@@ -8,10 +10,10 @@ from unittest.mock import MagicMock
 import pytest
 import torch.nn as nn
 
-from aitune.torch.backend.backend import Backend
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.recording_module import Sample
-from aitune.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
+from torch_tweak.torch.backend.backend import Backend
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
 
 
 @pytest.fixture

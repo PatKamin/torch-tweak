@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Tune Flux model."""
 
 import os
@@ -7,16 +9,15 @@ from logging import basicConfig, getLogger
 
 import torch
 
-import aitune.torch as ait
-from aitune.torch.backend import (
-    TensorRTBackend,
-    TensorRTBackendConfig,
-    TorchEagerBackend,
-    TorchInductorBackend,
-    TorchQuantizationConfig,
-)
+import torch_tweak.torch as tt
 from flux.cmd_args import parse_args
 from flux.model import get_pipeline
+from torch_tweak.torch.backend import (
+    OpenVINOBackend,
+    OpenVINOBackendConfig,
+    TorchEagerBackend,
+    TorchInductorBackend,
+)
 
 logger = getLogger(__name__)
 
@@ -43,39 +44,33 @@ def tune_model(
         max_sequence_length: Maximum sequence length
         tuned_model_path: Path to save the tuned model
         batch_sizes: List of batch sizes to tune
-        strategy: AITune strategy to use
+        strategy: Torch Tweak strategy to use
     """
     pipe = get_pipeline(model_name=model_name)
 
     input_data = [{"prompt": prompt}]
 
     # Inspect pipeline to get modules
-    modules_info = ait.inspect(pipe, input_data, number_of_iterations=1, warmup_iterations=2)
+    modules_info = tt.inspect(pipe, input_data, number_of_iterations=1, warmup_iterations=2)
 
     # Define strategy if not provided
     if strategy is None:
-        strategy = ait.FirstWinsStrategy(
+        strategy = tt.FirstWinsStrategy(
             backends=[
-                TensorRTBackend(
-                    TensorRTBackendConfig(
-                        quantization_config=TorchQuantizationConfig(
-                            quantization_config="FP8_DEFAULT_CFG",
-                            device="cuda",
-                        ),
+                OpenVINOBackend(
+                    OpenVINOBackendConfig(
                         use_dynamo=False,
                     )
                 ),
-                # TensorRTBackend(TensorRTBackendConfig(use_dynamo=True)),
-                TensorRTBackend(TensorRTBackendConfig(use_dynamo=False)),
                 TorchInductorBackend(),
                 TorchEagerBackend(),
             ]
         )
     strategy.enable_find_max_batch_size(enable=False)
 
-    # Wrap all modules with AITune Module
+    # Wrap all modules with Torch Tweak Module
     modules = modules_info.get_modules()
-    pipe = ait.wrap(pipe, modules, strategy=strategy)
+    pipe = tt.wrap(pipe, modules, strategy=strategy)
 
     def call_wrapper(*args, **kwargs):
         for height, width in sizes:
@@ -93,16 +88,16 @@ def tune_model(
 
     # First do a dry run for testing
     logger.info("Tuning module: %s", model_name)
-    ait.tune(call_wrapper, input_data, batch_sizes=[1] if batch_sizes is None else batch_sizes)
+    tt.tune(call_wrapper, input_data, batch_sizes=[1] if batch_sizes is None else batch_sizes)
     logger.info("Tuning completed.")
 
-    ait.save(pipe, tuned_model_path)
+    tt.save(pipe, tuned_model_path)
     logger.info("Model saved to %s", tuned_model_path)
 
 
 def main():
     """Entry point for the script."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = parse_args()
     tune_model(

@@ -1,15 +1,18 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # Tuning Workflow
 
-This guide provides an in-depth look at AITune's tuning process, explaining how samples are gathered, how modules are tuned, and how strategies and backends work together to optimize your models.
+This guide provides an in-depth look at Torch Tweak's tuning process, explaining how samples are gathered, how modules are tuned, and how strategies and backends work together to optimize your models.
 
 ## Overview
 
-The AITune tuning workflow is structured as follows:
+The Torch Tweak tuning workflow is structured as follows:
 
 1. **Sample Gathering**: Execute the model with different batch sizes to collect metadata
 2. **Graph Detection**: Identify unique computational graphs based on input characteristics
@@ -21,16 +24,16 @@ The AITune tuning workflow is structured as follows:
 
 ### 1. Sample Gathering Phase
 
-When you call `ait.tune()`, AITune first enters the sample gathering phase:
+When you call `tt.tune()`, Torch Tweak first enters the sample gathering phase:
 
 ```python
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # Wrap your module
-module = ait.Module(model, "my_model")
+module = tt.Module(model, "my_model")
 
 # Tune with different batch sizes
-ait.tune(module, dataset, batch_sizes=[1, 2, 4, 8])
+tt.tune(module, dataset, batch_sizes=[1, 2, 4, 8])
 ```
 
 During this phase:
@@ -42,11 +45,11 @@ During this phase:
   - Batch size information (stored in global context)
 - Wrapped modules automatically detect and record this metadata
 
-**Key Point**: At least 2 different batch sizes are required to detect batch dimensions. If only one batch size is provided, AITune assumes static shapes.
+**Key Point**: At least 2 different batch sizes are required to detect batch dimensions. If only one batch size is provided, Torch Tweak assumes static shapes.
 
 #### Sample Generation
 
-AITune uses `samples_generator` to iterate through the dataset:
+Torch Tweak uses `samples_generator` to iterate through the dataset:
 
 ```python
 for batch_size, args, kwargs in samples_generator(dataset, batch_sizes, max_num_batches_per_batch_size):
@@ -68,9 +71,9 @@ As samples are collected, wrapped modules detect unique computational graphs:
 
 ```python
 # Example: Different input structures create different graphs
-module(torch.randn(1, 10))              # Graph 0
-module(torch.randn(1, 10), mask=True)   # Graph 1 (different kwargs)
-module(torch.randn(1, 10, 5))           # Graph 2 (different tensor rank)
+module(torch.randn(1, 10))  # Graph 0
+module(torch.randn(1, 10), mask=True)  # Graph 1 (different kwargs)
+module(torch.randn(1, 10, 5))  # Graph 2 (different tensor rank)
 ```
 
 **Graph Identity Rules**:
@@ -84,15 +87,17 @@ Note:
 - If strict mode is turned off, only tensor data is taken into account when detecting graphs. The strict mode can be turned off with:
 
 ```python
-import aitune.torch as ait
-ait.config.strict_mode=False # by default this is turned on.
+import torch_tweak.torch as tt
+
+tt.config.strict_mode = False  # by default this is turned on.
 ```
 
 - For a particular graph, there is only a limited number of samples collected to limit memory usage. This threshold can be set with:
 
 ```python
-import aitune.torch as ait
-ait.config.max_num_samples_stored=10
+import torch_tweak.torch as tt
+
+tt.config.max_num_samples_stored = 10
 ```
 
 Each unique graph is represented by a `GraphSpec` containing:
@@ -103,7 +108,7 @@ Each unique graph is represented by a `GraphSpec` containing:
 
 **Batch and Dynamic Dimensions**:
 
-After seeing multiple samples, AITune identifies:
+After seeing multiple samples, Torch Tweak identifies:
 
 - **Batch dimensions** (e.g., `batch0`): Scale proportionally with batch size
 - **Dynamic dimensions** (e.g., `dim0`): Vary independently of batch size
@@ -124,7 +129,7 @@ See also [Execution Graphs](execution_graphs.md) - in depth explanation of detec
 
 ### 3. Module-by-Module Tuning
 
-After sample gathering, AITune tunes each wrapped module sequentially:
+After sample gathering, Torch Tweak tunes each wrapped module sequentially:
 
 ```python
 for module in MODULE_REGISTRY.modules.values():
@@ -150,16 +155,16 @@ For each module, each graph is tuned separately, i.e., a strategy is called for 
 
 ### 4. Strategy Execution
 
-The tuning strategy determines which backend(s) to try and how to select the best one. AITune provides three built-in strategies:
+The tuning strategy determines which backend(s) to try and how to select the best one. Torch Tweak provides three built-in strategies:
 
 #### FirstWinsStrategy
 
-Tries backends in priority order and returns the first one that builds and validates successfully. Not every backend can handle every model (e.g., TensorRT may fail during ONNX export, Torch Inductor may hit graph breaks), so this strategy provides automatic fallback instead of aborting.
+Tries backends in priority order and returns the first one that builds and validates successfully. Not every backend can handle every model (e.g., OpenVINO may fail during model conversion, Torch Inductor may hit graph breaks), so this strategy provides automatic fallback instead of aborting.
 
 ```python
-strategy = ait.FirstWinsStrategy([
-    ait.backend.TensorRTBackend(),
-    ait.backend.TorchInductorBackend(),
+strategy = tt.FirstWinsStrategy([
+    tt.backend.OpenVINOBackend(),
+    tt.backend.TorchInductorBackend(),
 ])
 ```
 
@@ -178,7 +183,7 @@ strategy = ait.FirstWinsStrategy([
 Uses exactly one backend, failing immediately with the original error if it cannot build. Unlike `FirstWinsStrategy` with a single backend, `OneBackendStrategy` surfaces the original exception rather than catching it.
 
 ```python
-strategy = ait.OneBackendStrategy(ait.backend.TorchInductorBackend())
+strategy = tt.OneBackendStrategy(tt.backend.TorchInductorBackend())
 ```
 
 **Workflow**:
@@ -194,10 +199,10 @@ strategy = ait.OneBackendStrategy(ait.backend.TorchInductorBackend())
 Before actual tuning, this strategy tries to estimate `max_batch_size`. It does so by incrementing `batch_size` (in powers of 2) and measuring throughput using the original module. The `max_batch_size` is picked for the best throughput and then is used for selecting the best backend:
 
 ```python
-strategy = ait.HighestThroughputStrategy([
-    ait.backend.TensorRTBackend(),
-    ait.backend.TorchInductorBackend(),
-    ait.backend.TorchEagerBackend(),
+strategy = tt.HighestThroughputStrategy([
+    tt.backend.OpenVINOBackend(),
+    tt.backend.TorchInductorBackend(),
+    tt.backend.TorchEagerBackend(),
 ])
 ```
 
@@ -213,7 +218,7 @@ strategy = ait.HighestThroughputStrategy([
 
 ### 5. Backend Building and Validation
 
-A backend represents a different technology for tuning a torch module, e.g., `TensorRT`, `TorchInductor`, and it is used by a strategy. Before it is used, it acts as a blueprint, i.e., it is copied, and each copy is used to build, validate, and activate a particular tuned module. This is done so that it has no side-effects on different modules or graphs.
+A backend represents a different technology for tuning a torch module, e.g., `OpenVINO`, `TorchInductor`, and it is used by a strategy. Before it is used, it acts as a blueprint, i.e., it is copied, and each copy is used to build, validate, and activate a particular tuned module. This is done so that it has no side-effects on different modules or graphs.
 
 Each backend is a small state machine that enforces safe usage:
 
@@ -230,7 +235,7 @@ The backend's state is governed by the strategy and the user must not change it.
 
 After building a backend, the strategy tries to validate it. This is enabled by default and can be turned off with `strategy.enable_correctness_check(False)`.
 
-AITune validates correctness by running the tuned backend on sample data. These checks are required to ensure the backend is correctly built:
+Torch Tweak validates correctness by running the tuned backend on sample data. These checks are required to ensure the backend is correctly built:
 
 1. Python basic types `int`, `float` must be finite.
 2. Tensors values must be finite.
@@ -298,18 +303,19 @@ To write a custom backend, extend the `Backend` base class and `BackendConfig` d
 - `describe()` - Returns a short human-readable description of the backend/config changes.
 - `to_dict()` - Serializes backend state; includes `Path` objects for artifacts to bundle in checkpoints.
 - `from_dict()` - Reconstructs a backend instance from the serialized state.
-- `is_jit` - Boolean property indicating whether the backend is of just-in-time type. This information helps AITune manage resources as just-in-time backends require the original torch module for activation. Otherwise, the original module can be offloaded to system memory.
 - `_build()` - Builds backend artifacts for a specific module/graph and returns a ready backend.
 - `_activate()` - Loads/initializes the backend for inference after it was inactive or checkpoint-loaded.
 - `_deactivate()` - Releases runtime resources and makes the backend inactive.
 - `_deploy()` - Finalizes the backend for deployment; after this it cannot change state.
 - `_infer()` - Executes inference with the backend for the provided inputs.
 
-For serialization with `ait.load` and `ait.save`, the `to_dict` and `from_dict` methods are used. Anything placed in the dictionary will be saved and restored as a checkpoint. Path objects will be copied to the checkpoints folder and can be used by a backend in the `_deploy` method.
+Set the class attribute `requires_original_module` to `True` when the backend keeps the original module and runs or compiles it. The default is `False`. Torch Tweak then offloads that module to the meta device after tuning.
+
+For serialization with `tt.load` and `tt.save`, the `to_dict` and `from_dict` methods are used. Anything placed in the dictionary will be saved and restored as a checkpoint. Path objects will be copied to the checkpoints folder and can be used by a backend in the `_deploy` method.
 
 ## Monitoring the Workflow
 
-AITune provides detailed logging throughout the tuning process.
+Torch Tweak provides detailed logging throughout the tuning process.
 
 Example logs from tuning ResNet (an example is placed in the `examples/ResNet` folder):
 
@@ -344,47 +350,47 @@ Now the logs will show the inputs and outputs of the module:
 ╘═══════════╧═════════╧══════════════════╧═════════════╧═════════════╧═══════════════╛
 ```
 
-As you can see, AITune detected the batch axis as the first one, hence the name `batch0` and input shapes `3x224x224`, i.e., batch of images, and output shape `1000`, i.e., batch of categories.
+As you can see, Torch Tweak detected the batch axis as the first one, hence the name `batch0` and input shapes `3x224x224`, i.e., batch of images, and output shape `1000`, i.e., batch of categories.
 
 Next, you can see the Highest Throughput Strategy builds backends one by one:
 
 ```text
 2026-02-04 13:32:38,343 - INFO -   num samples: 1
-2026-02-04 13:32:38,343 - INFO -   device: cuda:0
-2026-02-04 13:32:38,343 - INFO -   cache_dir: /home/pbazan/.cache/aitune/example-resnet50/0
+2026-02-04 13:32:38,343 - INFO -   device: xpu:0
+2026-02-04 13:32:38,343 - INFO -   cache_dir: /home/pbazan/.cache/torch_tweak/example-resnet50/0
 2026-02-04 13:32:38,343 - INFO -   strategy:
 2026-02-04 13:32:38,343 - INFO -     name: Highest Throughput Strategy
 2026-02-04 13:32:38,343 - INFO -     description: evaluate all backends, return backend with highest throughput
 2026-02-04 13:32:38,343 - INFO -     backends:
-2026-02-04 13:32:38,343 - INFO -       TensorRTBackend(quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False))
-2026-02-04 13:32:38,343 - INFO -       TensorRTBackend(use_dynamo=False,quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False))
-2026-02-04 13:32:38,343 - INFO -       TensorRTBackend(quantization_config=ONNXAutoCastConfig(precision='fp16', keep_io_types=True))
-2026-02-04 13:32:38,343 - INFO -       TensorRTBackend(use_dynamo=False,quantization_config=ONNXAutoCastConfig(precision='fp16', keep_io_types=True))
+2026-02-04 13:32:38,343 - INFO -       OpenVINOBackend()
+2026-02-04 13:32:38,343 - INFO -       OpenVINOBackend(use_dynamo=False)
+2026-02-04 13:32:38,343 - INFO -       OpenVINOBackend(performance_hint=THROUGHPUT)
+2026-02-04 13:32:38,343 - INFO -       OpenVINOBackend(use_dynamo=False,performance_hint=THROUGHPUT)
 2026-02-04 13:32:38,343 - INFO -       TorchAOBackend(quantization_config=Int8WeightOnlyConfig())
 2026-02-04 13:32:38,343 - INFO -       TorchInductorBackend(autocast_enabled=True,autocast_dtype=torch.float16)
 2026-02-04 13:32:38,343 - INFO -       TorchEagerBackend()
 2026-02-04 13:32:38,343 - INFO - ⏳ Executing strategy `HighestThroughputStrategy` on module `example-resnet50` (graph: 0)
-2026-02-04 13:32:38,343 - INFO - 🤖 backend: TensorRTBackend(quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False))
+2026-02-04 13:32:38,343 - INFO - 🤖 backend: OpenVINOBackend()
 2026-02-04 13:32:38,343 - INFO -     🔄 in progress...please wait
 2026-02-04 13:32:58,024 - INFO -     ✅ backend built
 2026-02-04 13:32:58,030 - INFO -     ✅ backend validated
 2026-02-04 13:32:58,044 - INFO -     ✅ backend profiled - throughput: 10051.17 samples/s, batch size: 4
-2026-02-04 13:32:58,044 - INFO -     🎯 new best throughput for TensorRTBackend(quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False)) is 10051.17 samples/s, batch size: 4
+2026-02-04 13:32:58,044 - INFO -     🎯 new best throughput for OpenVINOBackend() is 10051.17 samples/s, batch size: 4
 2026-02-04 13:32:58,044 - INFO -     ⏱️ completed in 19.70s
-2026-02-04 13:32:58,044 - INFO - 🤖 backend: TensorRTBackend(use_dynamo=False,quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False))
+2026-02-04 13:32:58,044 - INFO - 🤖 backend: OpenVINOBackend(use_dynamo=False)
 2026-02-04 13:32:58,044 - INFO -     🔄 in progress...please wait
 2026-02-04 13:33:14,828 - INFO -     ✅ backend built
 2026-02-04 13:33:14,829 - INFO -     ✅ backend validated
 2026-02-04 13:33:14,843 - INFO -     ✅ backend profiled - throughput: 10624.58 samples/s, batch size: 4
-2026-02-04 13:33:14,843 - INFO -     🎯 new best throughput for TensorRTBackend(use_dynamo=False,quantization_config=ONNXQuantizationConfig(precision='int8', calibration_method='max', use_model_opt_post_processing=False)) is 10624.58 samples/s, batch size: 4
+2026-02-04 13:33:14,843 - INFO -     🎯 new best throughput for OpenVINOBackend(use_dynamo=False) is 10624.58 samples/s, batch size: 4
 2026-02-04 13:33:14,844 - INFO -     ⏱️ completed in 16.80s
-2026-02-04 13:33:14,845 - INFO - 🤖 backend: TensorRTBackend(quantization_config=ONNXAutoCastConfig(precision='fp16', keep_io_types=True))
+2026-02-04 13:33:14,845 - INFO - 🤖 backend: OpenVINOBackend(performance_hint=THROUGHPUT)
 2026-02-04 13:33:14,845 - INFO -     🔄 in progress...please wait
 2026-02-04 13:33:36,037 - INFO -     ✅ backend built
 2026-02-04 13:33:36,038 - INFO -     ✅ backend validated
 2026-02-04 13:33:36,054 - INFO -     ✅ backend profiled - throughput: 7812.03 samples/s, batch size: 4
 2026-02-04 13:33:36,054 - INFO -     ⏱️ completed in 21.21s
-2026-02-04 13:33:36,056 - INFO - 🤖 backend: TensorRTBackend(use_dynamo=False,quantization_config=ONNXAutoCastConfig(precision='fp16', keep_io_types=True))
+2026-02-04 13:33:36,056 - INFO - 🤖 backend: OpenVINOBackend(use_dynamo=False,performance_hint=THROUGHPUT)
 2026-02-04 13:33:36,056 - INFO -     🔄 in progress...please wait
 2026-02-04 13:33:55,150 - INFO -     ✅ backend built
 2026-02-04 13:33:55,151 - INFO -     ✅ backend validated

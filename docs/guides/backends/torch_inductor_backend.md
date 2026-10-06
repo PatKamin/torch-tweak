@@ -1,6 +1,9 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # Torch Inductor Backend Guide
@@ -13,25 +16,26 @@ The Torch Inductor backend uses PyTorch's built-in compiler (`torch.compile` wit
 - **Automatic Optimization**: Kernel fusion and code generation
 - **Multiple Modes**: Default, reduce-overhead, max-autotune
 - **Dynamic Shapes**: Configurable dynamic shape support
-- **Cross-Platform**: Works on CPU and CUDA
+- **Cross-Platform**: Works on CPU and XPU
 
 ## Quick Start
 
 ```python
-from aitune.torch.backend import TorchInductorBackend, TorchInductorBackendConfig
-import aitune.torch as ait
+from torch_tweak.torch.backend import TorchInductorBackend, TorchInductorBackendConfig
+import torch_tweak.torch as tt
 import torch
 
 # Configure backend
-config = TorchInductorBackendConfig(mode="max-autotune")
+config = TorchInductorBackendConfig(mode="default")
 backend = TorchInductorBackend(config)
 
 # Use in tuning
-from aitune.torch.tune_strategy import OneBackendStrategy
-strategy = ait.OneBackendStrategy(backend=backend)
+from torch_tweak.torch.tune_strategy import OneBackendStrategy
 
-model = ait.Module(model, "my-model", strategy=strategy)
-ait.tune(model, input_data)
+strategy = tt.OneBackendStrategy(backend=backend)
+
+model = tt.Module(model, "my-model", strategy=strategy)
+tt.tune(model, input_data)
 ```
 
 ## Configuration Options
@@ -56,23 +60,11 @@ Predefined optimization modes:
 ```python
 # Default mode (balanced)
 config = TorchInductorBackendConfig(mode="default")
-
-# Reduce Python overhead with CUDA graphs
-config = TorchInductorBackendConfig(mode="reduce-overhead")
-
-# Maximum auto-tuning
-config = TorchInductorBackendConfig(mode="max-autotune")
-
-# Max autotune without CUDA graphs
-config = TorchInductorBackendConfig(mode="max-autotune-no-cudagraphs")
 ```
 
 **Mode Details**:
 
-- **default**: Good balance, general purpose
-- **reduce-overhead**: Uses CUDA graphs for small batches, reduces Python overhead
-- **max-autotune**: Leverages Triton for matmul/conv, enables CUDA graphs
-- **max-autotune-no-cudagraphs**: Like max-autotune but without CUDA graphs
+- **default**: Good balance, general purpose; works on all devices including Intel XPU
 
 ### fullgraph
 
@@ -108,8 +100,8 @@ Custom inductor options:
 # See all options: torch._inductor.list_options()
 config = TorchInductorBackendConfig(
     options={
-        "triton.cudagraphs": True,
-        "max_autotune": True,
+        "triton.cudagraphs": False,
+        "max_autotune": False,
         "coordinate_descent_tuning": True,
     }
 )
@@ -136,10 +128,11 @@ config = TorchInductorBackendConfig(
 ```python
 # Set environment variables before running
 import os
-os.environ['TORCH_LOGS'] = 'dynamic,perf_hints,graph_breaks'
+
+os.environ["TORCH_LOGS"] = "dynamic,perf_hints,graph_breaks"
 
 # Then run tuning
-ait.tune(wrapped_model, input_data)
+tt.tune(wrapped_model, input_data)
 ```
 
 ### Check Optimizations
@@ -147,6 +140,7 @@ ait.tune(wrapped_model, input_data)
 ```python
 # See what mode does
 import torch
+
 print(torch._inductor.list_mode_options())
 
 # See all available options
@@ -155,10 +149,10 @@ print(torch._inductor.list_options())
 
 ## Best Practices
 
-1. **Start with max-autotune**: Best performance for most models
-2. **Use reduce-overhead**: For latency-critical applications
-3. **Enable Autocast**: Free performance boost with FP16
-4. **Dynamic Shapes**: Only when necessary (adds overhead)
+1. **Start with default**: Good baseline, works across all devices including Intel XPU
+2. **Enable Autocast**: Free performance boost with FP16
+3. **Set Autocast dtype**: Set the dtype to BFloat16 for better performance on XPU
+4. **Dynamic Shapes**: Only when necessary (adds overhead - larger, slower kernels)
 5. **Warmup**: Run a few iterations before benchmarking
 
 ## Troubleshooting
@@ -181,16 +175,6 @@ TORCH_LOGS=graph_breaks python your_script.py
 config = TorchInductorBackendConfig(mode="default")
 ```
 
-### Issue: Not using CUDA graphs
-
-**Check logs**:
-
-```bash
-TORCH_LOGS=perf_hints python your_script.py
-```
-
-**Common causes**: Input mutations, unsupported operations
-
 ### Issue: Variable shape recompilations
 
 **Solution**: Enable dynamic shapes:
@@ -204,17 +188,15 @@ config = TorchInductorBackendConfig(
 
 ## Comparison with Other Backends
 
-| Feature          | Inductor  | TensorRT    | TorchAO   |
-|------------------|-----------|-------------|-----------|
-| **Dependencies** | None      | TensorRT    | torchao   |
-| **Setup**        | Easy      | Moderate    | Easy      |
-| **Performance**  | Good      | Excellent   | Good      |
-| **Quantization** | Limited   | Advanced    | Extensive |
-| **Portability**  | Excellent | NVIDIA only | Good      |
+| Feature          | Inductor  | OpenVINO   | TorchAO   |
+|------------------|-----------|------------|-----------|
+| **Dependencies** | None      | openvino   | torchao   |
+| **Setup**        | Easy      | Moderate   | Easy      |
+| **Quantization** | Limited   | Advanced   | Extensive |
+| **Portability**  | Excellent | Intel only | Good      |
 
 ## Next Steps
 
-- Compare with [TensorRT Backend](tensorrt_backend.md) for maximum performance
 - Explore [TorchAO Backend](torchao_backend.md) for quantization
 - Learn about [Tune Strategies](../tune_strategies/tune_strategies.md)
 - Review [Deployment Guide](../deployment/deployment.md)

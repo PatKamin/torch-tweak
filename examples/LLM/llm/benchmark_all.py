@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Benchmark all scenarios"""
 
 import logging
@@ -33,7 +36,7 @@ def main():
         logging.info("Benchmarking baseline scenario: %s", args)
         results.extend(benchmark_scenario(args))
 
-    for scenario in ["aot", "vanilla"]:
+    for scenario in ["tuned", "vanilla"]:
         for cache in ["static"]:
             args.cache = cache
             args.scenario = scenario

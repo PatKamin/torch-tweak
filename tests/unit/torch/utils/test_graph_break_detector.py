@@ -1,13 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for GraphBreakDetector."""
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.utils.graph_break_detector import GraphBreakDetector
 from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.utils.graph_break_detector import GraphBreakDetector
 
 
 class ModelWithIf(nn.Module):

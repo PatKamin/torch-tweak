@@ -1,9 +1,13 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
+
 [project]
-name = "aitune"
-readme = "docs/pypi.rst"
-description = "NVIDIA AITune"
+name = "torch-tweak"
+readme = "README.md"
+description = "Torch Tweak is an inference toolkit designed for tuning and deploying Deep Learning models with a focus on Intel XPU (GPU) accelerators."
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -16,121 +20,152 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Operating System :: POSIX",
-    "Operating System :: Unix",
-    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: POSIX :: Linux",
 ]
-authors = [{ name = "NVIDIA Corporation" }]
-maintainers = [{ name = "NVIDIA Corporation" }]
+license = "Apache-2.0"
+license-files = ["LICENSE", "third-party-programs.txt"]
+authors = [{ name = "Intel Corporation" }]
+maintainers = [{ name = "Intel Corporation" }]
 keywords = [
-    "dynamo",
     "inference",
     "tune",
-    "nvidia",
-    "tensorrt",
-    "torch-tensorrt",
-    "onnx",
+    "intel",
+    "openvino",
     "pytorch",
     "torch",
 ]
-license = { text = "Apache 2.0" }
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10"
 dependencies = [
-    "autowrapt>=1.0",
-    "dill>=0.3.8",
-    "nvidia-ml-py",
-    "nvidia-modelopt[onnx]>=0.40.0",
-    "numpy<2",
-    "nvtx",
-    "onnxscript<=0.5.4",
-    "onnx-ir<=0.1.15",
+    "numpy>=2",
+    "openvino>=2026.2.1",
     "psutil",
-    "tabulate>=0.9.0",
-    "tensorrt>=10.5",
-    "torch>=2.7",
-    "torchao>=0.13",
-    "torch-tensorrt>2",
-    "wrapt~=2.0"
+    "tabulate>=0.10.0",
+    "torchao>=0.17.0",
+    "wrapt~=2.2"
 ]
 
 [project.urls]
-"Documentation" = "https://ai-dynamo.github.io/aitune"
-"Repository" = "https://github.com/ai-dynamo/aitune.git"
-"Tracker" = "https://github.com/ai-dynamo/aitune/issues"
+"Documentation" = "https://github.com/intel/torch-tweak"
+"Repository" = "https://github.com/intel/torch-tweak.git"
+"Tracker" = "https://github.com/intel/torch-tweak/issues"
 
 [project.optional-dependencies]
+xpu = ["torch>=2.13.0"]
 test = [
-    "pytest>=9.0.0",
+    "datasets>=4.8.5,<6.0.0",
+    "diffusers>=0.40.0,<1.0",
+    "pytest>=9.1.1",
     "pytest-mock",
-    "pytest-cov",
-    "pillow",
-    "datasets>=3.3.2",
-    "transformers<5",
-    "setuptools",
-    "importlib-metadata; python_version < '3.10'",
+    "pillow>=12.3.0",
+    "pyarrow>=24.0.0", # sec
+    "sentencepiece>=0.2.1",
+    "timm",
+    "transformers>=5.13.0,<6",
+    "urllib3>=2.7.0", # sec
+]
+doc = [
+    "GitPython >= 3.1.58",
+    "mike >= 2.2.0",
+    "mkdocs-htmlproofer-plugin >= 1.5.0",
+    "mkdocs-material >= 9.7.6",
+    "mkdocs-redirects >= 1.2.3",
+    "mkdocstrings[python] >= 1.0.4",
+    "mkdocstrings-python >= 2.0.5",
+    "properdocs >= 1.6.7"
 ]
 dev = [
-    "aitune[test]",
-    "aitune[doc]",
-    "build >= 0.8",
-    "ipython >= 7.16",
-    "pdbpp >= 0.10",
-    "pip >= 21.1",
-    "ruff >= 0.3.0",
+    "torch-tweak[test]",
+    "torch-tweak[doc]",
+    "ipython >= 8.39.0",
+    "pdbpp >= 0.12.1",
+    "pip >= 26.1.2",
+    # Keep this pin equal to the ruff-pre-commit rev. Lint fails when they differ.
+    "ruff==0.16.10",
     "ipykernel",
     "pre-commit",
     "pre-commit-uv",
     "pytype",
-    "tox",
-    "uv>=0.9.0",
-    "nbconvert>=7.17.0",
-]
-functional-test = [
-    "fire",
-    "timm",
-    "diffusers<=0.34.0",
-    "datasets>=3.3.2",
-    "transformers>=4.54,<5",
-    "sentencepiece>=0.2.0",
-    "urllib3>=2.6.3", # sec
-]
-
-doc = [
-    "GitPython >= 3.1.30",
-    "mike ~= 1.1.0",
-    "mkdocs-htmlproofer-plugin >= 0.8.0",
-    "mkdocs-material >= 8.5.6",
-    "mkdocs-redirects >= 1.2.2",
-    "mkdocstrings[python] >= 0.24.0",
-    "mkdocstrings-python >= 1.7.0"
+    "uv>=0.11.26",
 ]
 
 [build-system]
-requires = ["setuptools>=65.3.0", "setuptools_scm[toml]>=8.3", "wheel>=0.37.1"]
+requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
-license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 namespaces = false
-include = ["aitune"]
+include = ["torch_tweak*"]
 
-[tool.setuptools.package-data]
-aitune = ["**/*"]
-
+# We're dropping here a specific git version, when building. Now, instead of a version like
+# "torch_tweak==0.1.dev1+g7c6ac7b94", we're getting "torch_tweak==0.1.dev1".
+# This is mostly to solve the CI issue, when there's unexpected git dirty state.
+#
+# We could bring more accurate version, using local, private scheme, but this can fail in some scenarios...?
+# Ref. https://github.com/pypa/setuptools-scm/issues/1084
 [tool.setuptools_scm]
+local_scheme = "no-local-version"
+fallback_version = "0.4.0"
+
+[dependency-groups]
+xpu-nightly = ["torch>=2.13.0", "triton-xpu"]
+xpu-stable = ["torch>=2.13.0"]
 
 [tool.uv]
 managed = true
+index-strategy = "unsafe-best-match"
+default-groups = ["xpu-stable"]
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+required-environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+conflicts = [
+    [{ group = "xpu-nightly" }, { group = "xpu-stable" }],
+    [{ group = "xpu-nightly" }, { extra = "xpu" }],
+]
 
+[[tool.uv.index]]
+name = "pytorch-xpu-nightly"
+url = "https://download.pytorch.org/whl/nightly/xpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-xpu"
+url = "https://download.pytorch.org/whl/xpu"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-xpu-nightly", group = "xpu-nightly" },
+    { index = "pytorch-xpu", group = "xpu-stable" },
+    { index = "pytorch-xpu", extra = "xpu" },
+]
+torchao = { index = "pytorch-cpu" }
+triton-xpu = [
+    { index = "pytorch-xpu-nightly", group = "xpu-nightly" },
+]
+
+# Pytest's live log level can be overriden with --log-cli-level=DEBUG
 [tool.pytest.ini_options]
 log_cli = true
+log_cli_level = "WARNING"
 addopts = ["--import-mode=importlib", "--doctest-modules"]
 pythonpath = ["."]
-testpaths = ["aitune", "tests/unit"]
-markers = ["slow: mark test as slow"]
+testpaths = ["torch_tweak", "tests/unit", "tests/functional"]
+markers = [
+    "functional: mark test as a functional test",
+    "nightly: mark test to be run in nightly workflow",
+]
 
 [tool.ruff]
 preview = true
@@ -172,28 +207,11 @@ convention = "google"
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
-[tool.ruff.lint.flake8-copyright]
-notice-rgx = "# SPDX-FileCopyrightText: Copyright \\(c\\) 2026 NVIDIA CORPORATION & AFFILIATES\\. All rights reserved\\.(\n# SPDX-FileCopyrightText: .*)*\n# SPDX-License-Identifier: Apache-2\\.0"
-
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
 
-[tool.vulture]
-exclude = []
-ignore_decorators = []
-ignore_names = []
-make_whitelist = true
-min_confidence = 80
-paths = ["aitune"]
-sort_by_size = true
-verbose = false
-
 [tool.pytype]
 disable = ["import-error", "module-attr"]
-
-# the following enables autowrapt to conditionally enable JIT tuning i.e. `AUTOWRAPT_BOOTSTRAP=aitune_enable_jit_tuning python script.py`
-[project.entry-points.aitune_enable_jit_tuning]
-torch = "aitune.torch.jit.enable:wrapt_auto_enable"

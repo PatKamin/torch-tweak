@@ -1,13 +1,16 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
-# ESM2 Model Tuning with NVIDIA AITune
+# ESM2 Model Tuning with Torch Tweak
 
 > Evolutionary-scale prediction of atomic level protein structure with a language model
 
-This example demonstrates how to use NVIDIA AITune to tune the ESM2 transformer protein language model - `facebook/esm2_t33_650M_UR50D` - from Hugging Face's transformer library.
+This example demonstrates how to use Torch Tweak to tune the ESM2 transformer protein language model - `facebook/esm2_t33_650M_UR50D` - from Hugging Face's transformer library.
 
 ## Environment Setup
 
@@ -18,7 +21,9 @@ You can use either of the following options to set up the environment:
 Activate your virtual environment and install the dependencies:
 
 ```bash
-pip install --extra-index-url https://pypi.nvidia.com .
+pip install --index-url https://download.pytorch.org/whl/xpu \
+        --extra-index-url https://pypi.org/simple \
+        .
 ```
 
 ### Option 2 - virtual environment managed by `uv`
@@ -39,36 +44,23 @@ To tune the ESM2 model, run:
 tune
 ```
 
+or
+
+```bash
+uv run tune
+```
+
 After tuning, run inference
 
 ```bash
 inference
 ```
 
-### AI Dynamo ESM2 Deployment
+or
 
-To run ESM2 as AI Dynamo service, we have prepared a few additional configs and scripts.
-
-The service is split into backend (`esm2/dynamo/backend.py`) and frontend (`esm2/dynamo/frontend.py`) components. Docker and Docker Compose are used to make setup simple.
-
-First, start all services by running `HF_TOKEN=hf.... docker compose --profile all up --detach`. This will build and start all required services. The token for the HuggingFace is required to download the model.
-
-After successful download, tuning and services start run below command to test the service.
-
-```sh
-python -m esm2.dynamo.client # same as with --num-requests 1
-python -m esm2.dynamo.client --num-requests 2
-python -m esm2.dynamo.client --num-requests 4
-python -m esm2.dynamo.client --num-requests 8
-python -m esm2.dynamo.client --num-requests 100
+```bash
+uv run inference
 ```
-
-Finally, to shut it down use `docker compose --profile all down`.
-
-#### Dynamic batching
-
-The service uses dynamic batching — requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.
-
 
 ## Model Details
 

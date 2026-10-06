@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Model utilities for SentenceTransformer embedding."""
 
 from sentence_transformers import SentenceTransformer
 
 
-def get_model(model_name: str = "intfloat/e5-large-v2", device: str = "cuda"):
+def get_model(model_name: str = "intfloat/e5-large-v2", device: str = "xpu"):
     """Get a pretrained SentenceTransformer.
 
     Args:

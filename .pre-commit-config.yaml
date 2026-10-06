@@ -1,8 +1,27 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 repos:
+  - repo: local
+    hooks:
+      - id: fix-copyright-headers
+        name: fix missing SPDX copyright headers
+        entry: python3 .github/scripts/check_licenses.py --fix
+        language: system
+        files: '\.(py|md|html|yaml|yml|toml|ini|cfg)$'
+
+        pass_filenames: true
+      - id: regenerate-uv-lock
+        name: regenerate uv.lock
+        entry: uv lock
+        language: system
+        files: 'pyproject.toml'
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
+    # Keep this rev equal to the ruff pin in pyproject.toml. Lint fails when they differ.
+    rev: v0.16.10
     hooks:
       - id: ruff-check
         args: [ --fix ]
@@ -32,14 +51,26 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.37.3
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.33.0
     hooks:
-      - id: pyupgrade
-        args: [--py39-plus]
+    - id: check-dependabot
+    - id: check-github-workflows
 
   # - repo: https://github.com/thlorenz/doctoc
   #   rev: v2.2.0
   #   hooks:
   #     - id: doctoc
   #       args: [ --github, --update-only ]
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.1
+    hooks:
+      - id: nbstripout
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        # Skip B101 (assert_used): assertions are expected in tests; all other checks run.
+        args: ["-s", "B101", "-x", "/.venv/"]

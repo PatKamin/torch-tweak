@@ -1,0 +1,402 @@
+[
+  {
+    "prompt": "Synthetic dataloader prompt 1. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 2. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 3. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 4. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 5. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 6. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 7. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 8. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 9. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 10. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 11. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 12. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 13. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 14. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 15. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 16. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 17. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 18. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 19. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 20. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 21. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 22. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 23. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 24. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 25. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 26. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 27. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 28. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 29. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 30. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 31. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 32. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 33. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 34. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 35. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 36. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 37. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 38. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 39. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 40. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 41. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 42. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 43. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 44. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 45. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 46. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 47. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 48. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 49. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 50. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 51. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 52. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 53. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 54. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 55. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 56. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 57. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 58. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 59. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 60. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 61. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 62. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 63. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 64. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 65. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 66. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 67. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 68. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 69. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 70. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 71. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 72. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 73. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 74. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 75. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 76. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 77. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 78. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 79. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 80. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 81. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 82. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 83. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 84. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 85. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 86. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 87. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 88. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 89. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 90. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 91. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 92. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 93. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 94. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 95. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 96. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 97. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 98. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 99. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  },
+  {
+    "prompt": "Synthetic dataloader prompt 100. This sentence is original fixture text for tokenizer tests.",
+    "act": "Test fixture"
+  }
+]

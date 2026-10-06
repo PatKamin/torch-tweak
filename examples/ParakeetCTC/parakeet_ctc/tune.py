@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Tune Nemo ASR with Parakeet-CTC-0.6B model."""
 
 import os
@@ -9,10 +12,10 @@ from pathlib import Path
 import torch
 from nemo.collections.asr.parts.mixins.transcription import InternalTranscribeConfig, TranscribeConfig
 
-from aitune.torch import FirstWinsStrategy, TuneStrategy, inspect, save, tune, wrap
-from aitune.torch.backend import TensorRTBackend, TensorRTBackendConfig, TorchEagerBackend, TorchInductorBackend
 from parakeet_ctc.cmd_args import parse_args
 from parakeet_ctc.model import get_model
+from torch_tweak.torch import FirstWinsStrategy, TuneStrategy, inspect, save, tune, wrap
+from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
 
 logger = getLogger(__name__)
 
@@ -44,7 +47,7 @@ def tune_model(
             override_config=TranscribeConfig(
                 batch_size=len(kwargs["audio"]),
                 verbose=False,
-                _internal=InternalTranscribeConfig(device=torch.device("cuda")),
+                _internal=InternalTranscribeConfig(device=torch.device("xpu")),
             ),
         )
 
@@ -71,14 +74,12 @@ def tune_model(
 
 def main():
     """Main function."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = parse_args()
 
     strategy = FirstWinsStrategy(
         backends=[
-            TensorRTBackend(),
-            TensorRTBackend(TensorRTBackendConfig(use_dynamo=False)),
             TorchInductorBackend(),
             TorchEagerBackend(),
         ]

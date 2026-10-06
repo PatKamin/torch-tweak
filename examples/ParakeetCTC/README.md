@@ -1,11 +1,14 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
-# Nemo ASR Parakeet CTC 0.6B Pipeline Tuning with NVIDIA AITune
+# Nemo ASR Parakeet CTC 0.6B Pipeline Tuning with Torch Tweak
 
-This example demonstrates how to use NVIDIA AITune to tune the Nemo ASR with Parakeet-CTC-0.6B model.
+This example demonstrates how to use Torch Tweak to tune the Nemo ASR with Parakeet-CTC-0.6B model.
 
 ## Environment Setup
 
@@ -16,7 +19,9 @@ You can use either of the following options to set up the environment:
 Activate your virtual environment and install the dependencies:
 
 ```bash
-pip install --extra-index-url https://pypi.nvidia.com .
+pip install --index-url https://download.pytorch.org/whl/xpu \
+        --extra-index-url https://pypi.org/simple \
+        .
 ```
 
 ### Option 2 - virtual environment managed by `uv`
@@ -47,44 +52,23 @@ To tune the ASR model, run:
 tune
 ```
 
+or
+
+```bash
+uv run tune
+```
+
 To infer the ASR model, run:
 
 ```bash
 inference
 ```
 
-To benchmark the ASR model, run
+or
 
 ```bash
-benchmark
+uv run inference
 ```
-
-
-### AI Dynamo ParakeetCTC Deployment
-
-To run ParakeetCTC as AI Dynamo service, we have prepared a few additional configs and scripts.
-
-Code starts in `parakeet_ctc/dynamo/backend.py`. Docker and Docker Compose are used to make setup simple.
-
-First, start all services by running `docker compose --profile all up --detach`. This will build and start all required services.
-
-After successful tuning and services start run below command to test the service.
-
-```sh
-python -m parakeet_ctc.dynamo.client --help # to see the prompts
-python -m parakeet_ctc.dynamo.client --num-requests 1
-python -m parakeet_ctc.dynamo.client --num-requests 2
-python -m parakeet_ctc.dynamo.client --num-requests 4
-python -m parakeet_ctc.dynamo.client --num-requests 8
-python -m parakeet_ctc.dynamo.client --num-requests 100
-```
-
-Finally, to shut it down use `docker compose --profile all down`.
-
-#### Dynamic batching
-
-The service uses dynamic batching — requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.
-
 
 ## Model Details
 

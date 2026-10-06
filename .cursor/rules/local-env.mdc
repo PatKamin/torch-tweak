@@ -1,0 +1,89 @@
+---
+description: Local build, run, and test Torch Tweak with uv (stable or nightly XPU)
+alwaysApply: true
+---
+
+# Torch Tweak - local environment (uv)
+
+## Scope
+
+Use this workflow for **local** installs, demos, and tests.
+
+- **Default Python stack:** uv + **stable** PyTorch XPU - venv **`.venv`** (`default-groups = ["xpu-stable"]`).
+- **Optional:** uv + **nightly** PyTorch XPU - separate venv **`.venv-nightly`** (`xpu-nightly` group).
+
+## uv - stable environment (default)
+
+From the repository root. **Do not** set `UV_PROJECT_ENVIRONMENT` (uv uses **`.venv`**).
+
+```bash
+uv sync --extra dev
+uv run pytest
+```
+
+Example:
+```bash
+uv sync --extra dev
+```
+
+```bash
+uv run ruff check --fix && uv run ruff format
+```
+
+Prefer `uv run …` over manually activating `.venv/bin/activate`.
+
+## uv - nightly environment (optional)
+
+Use nightly only when the task needs **PyTorch XPU nightly** wheels. Keep nightly in a **separate** venv so it does not fight stable.
+
+| | Stable | Nightly |
+|---|--------|---------|
+| Venv path | `.venv` (default) | `.venv-nightly` |
+| `UV_PROJECT_ENVIRONMENT` | unset | `.venv-nightly` |
+| Sync | `uv sync --extra dev` | `uv sync --no-default-groups --group xpu-nightly --extra dev` |
+| Every `uv run` | no extra env var | `UV_PROJECT_ENVIRONMENT=.venv-nightly` |
+
+**Install / refresh nightly:**
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev
+```
+
+**Run tests on nightly:**
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest
+```
+
+### Nightly rules (do not break resolution)
+
+1. Never activate **`xpu-nightly` and `xpu-stable` in the same `uv sync`** (conflicts in `pyproject.toml`).
+2. Nightly sync **must** include **`--no-default-groups --group xpu-nightly`** so `default-groups = ["xpu-stable"]` is not applied.
+3. Do **not** use `uv sync --only-group xpu-nightly --extra dev` - use `--no-default-groups --group xpu-nightly --extra dev` instead.
+4. Set **`UV_PROJECT_ENVIRONMENT=.venv-nightly`** on **both** `uv sync` and `uv run` when working in the nightly tree.
+5. Switching nightly ↔ stable in a **single** `.venv` is possible but reinstalls `torch`; prefer two directories (`.venv` + `.venv-nightly`).
+
+**Back to stable** (from repo root, default venv):
+
+```bash
+uv sync --extra dev
+```
+
+## Agent rules
+
+1. When diagnosing failures, **reproduce the exact command** (stable vs nightly, `UV_PROJECT_ENVIRONMENT`, and uv flags) before changing code.
+2. Default to **stable** (`.venv`, `uv sync --extra dev`). Use **nightly** only when the user or task explicitly requires nightly PyTorch.
+3. If you add Python packages for a demo or test, update **`pyproject.toml`** in the same change and run **`uv lock`** + **`uv sync`** (with the correct stable or nightly flags).
+4. Don't commit a non-standard ascii characters in the code, especially in the comments (unless specifically specified by the user). Example: avoid dashes, use simple hyphens, avoid arrows etc. Keep it simple and readable.
+
+## Quick reference
+
+| Task | Command |
+|------|---------|
+| Stable: install deps | `uv sync --extra dev` |
+| Stable: unit tests | `uv run pytest` |
+| Stable: OpenVINO tests | `uv run pytest tests/unit/torch/backend/test_openvino_backend.py -v` |
+| Nightly: install deps | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv sync --no-default-groups --group xpu-nightly --extra dev` |
+| Nightly: unit tests | `UV_PROJECT_ENVIRONMENT=.venv-nightly uv run pytest` |
+| Ruff (lint + fix) | `uv run ruff check --fix && uv run ruff format` |
+| Pre-commit | `uv run pre-commit run --all-files` |

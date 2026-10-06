@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Inference for E5 Large v2 embedding model."""
 
 import logging
 
 import torch
-from aitune.torch import load
-from aitune.torch.config import config as global_config
+from torch_tweak.torch import load
+from torch_tweak.torch.config import config as global_config
 
 from .cmd_args import get_parser
 from .model import get_model
@@ -23,7 +26,7 @@ def main():
     sentence = args.prompt
 
     logger.info("Getting model...")
-    model = get_model(model_name=args.model_name, device="cuda")
+    model = get_model(model_name=args.model_name, device="xpu")
 
     model.encode(sentences=["query: test"], batch_size=1, convert_to_tensor=True)
 
@@ -50,7 +53,7 @@ def main():
             normalize_embeddings=True,
             show_progress_bar=False,
             batch_size=1,
-            device="cuda",
+            device="xpu",
         )
 
     embeddings = infer(sentences=[sentence, sentence, sentence, sentence])

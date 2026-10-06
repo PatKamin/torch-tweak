@@ -1,19 +1,15 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 # Quick Start
 
-This quick start provides examples of tuning and deployment paths available in NVIDIA AITune.
+This quick start provides examples of tuning and deployment path available in Torch Tweak.
 
-NVIDIA AITune enables seamless tuning of models for deployment (for example, converting them to TensorRT) without requiring changes to your original Python pipelines.
-
-NVIDIA AITune supports two modes:
-
-* Ahead-of-time tuning — provide a model or a pipeline, and a dataset/dataloader. You can either rely on `inspect` to detect promising modules to tune or manually select them.
-* Just-in-time tuning — set a special environment variable, run your script without changes, and AITune will, on the fly, detect modules and tune them one by one.
-
-Ahead-of-time mode is more powerful and allows you to tweak more settings, whereas just-in-time works out of the box but offers less control over the tuning process. For a more detailed comparison, see the [Comparison between AOT and JIT tuning](#comparison-between-ahead-of-time-and-just-in-time-tuning) section.
+Torch Tweak tunes models for deployment (for example, converting them to OpenVINO) with a small amount of integration in your Python pipeline. You provide a model or a pipeline, and a dataset or dataloader. You can rely on `inspect` to detect promising modules to tune, or select them manually.
 
 ## Enabling logging
 
@@ -28,7 +24,7 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 Learn about more options in [observability](observability.md).
 
-## Ahead-of-time tuning
+## Tuning
 
 The code below demonstrates Stable Diffusion pipeline tuning.
 
@@ -46,11 +42,11 @@ Then initialize the pipeline:
 import torch
 from diffusers import DiffusionPipeline
 
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # Initialize pipeline
 pipe = DiffusionPipeline.from_pretrained("stable-diffusion-v1-5/stable-diffusion-v1-5", torch_dtype=torch.float16)
-pipe.to("cuda")
+pipe.to("xpu")
 ```
 
 Next, `inspect` the pipeline components and display the summary:
@@ -60,14 +56,15 @@ Next, `inspect` the pipeline components and display the summary:
 input_data = [{"prompt": "A beautiful landscape with mountains and a lake"}]
 
 # Inspect pipeline to get modules
-modules_info = ait.inspect(pipe, input_data)
+modules_info = tt.inspect(pipe, input_data)
 
 
 # Optional: inference function, if you need more control over execution
 def infer(prompt):
     return pipe(prompt, width=1024, height=1024, num_inference_steps=10)
 
-# modules_info = ait.inspect(pipe, input_data, inference_function=infer)
+
+# modules_info = tt.inspect(pipe, input_data, inference_function=infer)
 
 # Display modules info
 modules_info.describe()
@@ -78,10 +75,10 @@ Finally, `wrap` the selected modules and `tune` within the pipeline:
 ```python
 # Wrap modules for tuning
 modules = modules_info.get_modules()
-pipe = ait.wrap(pipe, modules)
+pipe = tt.wrap(pipe, modules)
 
 # Tune pipeline
-ait.tune(pipe, input_data)
+tt.tune(pipe, input_data)
 ```
 
 At this point, you can use the pipeline to generate predictions with the tuned models directly in Python:
@@ -98,107 +95,25 @@ image.save("landscape.png")
 Once the pipeline has been tuned, you can save the best-performing version of the modules for later deployment:
 
 ```python
-ait.save(pipe, "tuned_pipe.ait")
+tt.save(pipe, "tuned_pipe.tt")
 ```
 
 And load the tuned pipeline directly:
 
 ```python
 pipe = DiffusionPipeline.from_pretrained("stable-diffusion-v1-5/stable-diffusion-v1-5", torch_dtype=torch.float16)
-pipe.to("cuda")
-ait.load(pipe, "tuned_pipe.ait")
+pipe.to("xpu")
+tt.load(pipe, "tuned_pipe.tt")
 ```
 
-## Just-in-time tuning
+## Summary
 
-In this mode, there is no need to modify the user's code. At the beginning, AITune uses a few inferences to detect model architecture and hierarchy of a model. Then it tries to tune modules one by one starting from the top. If there is one of the following conditions:
-
-* a graph break is detected, i.e., torch.nn.Module contains conditional logic on inputs, meaning there is no guarantee of a static, correct graph of computations, or
-* there is an error during tuning
-
-that module is left unchanged and AITune tries to tune its children. This process continues until the module depth reaches a configured limit.
-
-First, install the required third-party dependencies:
-
-```bash
-pip install "transformers<5" diffusers torch
-```
-
-Prepare the script with the model for tuning `my_script.py`:
-
-```python
-# Enable JIT tuning - single import
-import aitune.torch.jit.enable
-
-from diffusers import DiffusionPipeline
-
-# Initialize pipeline
-pipe = DiffusionPipeline.from_pretrained("stable-diffusion-v1-5/stable-diffusion-v1-5", torch_dtype=torch.float16)
-pipe.to("cuda")
-
-# First call - tuning the model
-pipe("A beautiful landscape with mountains and a lake")
-
-# Second call - using tuned model
-pipe("A beautiful landscape with mountains and a lake")
-```
-
-You can then run your script:
-
-```bash
-python my_script.py
-```
-
-*Note*: The `import aitune.torch.jit.enable` must be a first import in your code. The alternative option is to use `export AUTOWRAPT_BOOTSTRAP=aitune_enable_jit_tuning` to avoid any source code modification.
-
-### Configuring just-in-time tuning
-
-If there is a need to adjust just-in-time options, you can do it but currently this requires modifying code to import the JIT config:
-
-```python
-from aitune.torch.jit.config import config
-from aitune.torch.backend import TensorRTBackend
-
-config.max_depth_level = 1 # change the default maximum depth level for nested modules to be tuned
-config.detect_graph_breaks = False # turn off graph break detection
-config.backends = [TensorRTBackend()] # change the backends
-```
-
-## Comparison between ahead-of-time and just-in-time tuning
-
-The ahead-of-time tuning gives you the most control over the tuning process:
+Tuning gives you control over the process:
 
 * it detects the batch axis and dynamic axes (axes that change shape independently of batch size, e.g., sequence length in LLMs)
 * allows picking modules to tune
 * you can pick a tuning strategy (e.g., best throughput) for the whole process or per-module
-* you can pick tuning backends (e.g., TensorRT, TorchInductor, TorchAO) which will be used by the strategy
+* you can pick tuning backends (e.g., OpenVINO, TorchInductor, TorchAO) which will be used by the strategy
 * you can mix different backends in the same model/pipeline
-* you can manually verify the tuning process (note: AITune performs basic checks for NaNs and errors)
+* you can manually verify the tuning process (note: Torch Tweak performs basic checks for NaNs and errors)
 * you can save the resulting artifact and later read it from disk
-
-The big advantage of just-in-time tuning is that you don't need to modify the user's script to tune a model. However, it has some disadvantages - since it cannot access data directly (you don't provide a dataloader):
-
-* it cannot deduce batch size nor do benchmarking
-* input/output shapes depend on the data seen, so for example, TRT backend will build a profile only for that data
-* it needs at least two inference calls - first to get model/pipeline hierarchy and second one for actual tuning
-* if you need dynamic axes (e.g., TRT backend), you need to provide two different batch sizes
-* there is limited support of strategies due to unknown batch size
-* you can specify backends for the whole model
-
-The following table summarizes the difference between modes:
-
-| Feature                 | Ahead-of-time         | Just-in-time                  |
-|-------------------------|-----------------------|-------------------------------|
-| Detecting dynamic axes  | Yes                   | Yes                           |
-| Extrapolating batches   | Yes                   | No                            |
-| Benchmarking            | Yes                   | No (no extrapolating batches) |
-| Modules for tuning      | User has full control | Picked automatically          |
-| Selecting tune strategy | Global or per module  | Global                        |
-| Available strategies    | All                   | Limited (no benchmarking)     |
-| Tune time               | Slow                  | Quick                         |
-| Saving artifacts        | Yes                   | No                            |
-| Load tuned model time   | Quick                 | Re-tuning required            |
-| Code changes required   | Yes                   | No                            |
-| Caching                 | Yes                   | No                            |
-
-Note: Currently, JIT mode does not support caching results, i.e., every time a new Python interpreter starts, the tuning process starts from scratch.

@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for TorchInductorBackend."""
 
 from unittest.mock import Mock
@@ -8,12 +11,12 @@ import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.backend.torch_inductor_backend import TorchInductorBackend, TorchInductorBackendConfig
-from aitune.torch.checkpoint.storage_tasks import TorchLoadTask, TorchSaveTask
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.recording_module import Sample
 from tests.toy_models import ToyTorchModel
-from tests.utilities.helpers import requires_cuda
+from tests.utilities.helpers import requires_xpu
+from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend, TorchInductorBackendConfig
+from torch_tweak.torch.checkpoint.storage_tasks import TorchLoadTask, TorchSaveTask
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.recording_module import Sample
 
 IN_FEATURES = 32
 OUT_FEATURES = 5
@@ -39,7 +42,7 @@ def move_to_dtype(sample_data, dtype):
     return [(args, kwargs)]
 
 
-def backend_build(backend, dtype, model, sample_data, tmp_path, device="cuda"):
+def backend_build(backend, dtype, model, sample_data, tmp_path, device="xpu"):
     """Build the model with the backend."""
     device = torch.device(device)
     model = model.to(device, dtype=dtype)
@@ -74,7 +77,7 @@ def do_test_backend(backend, dtype, model, sample_data, tmp_path):
     backend.deactivate()
 
 
-@requires_cuda
+@requires_xpu
 @pytest.mark.parametrize(
     "mode",
     ["default", "reduce-overhead", "max-autotune", "max-autotune-no-cudagraphs"],
@@ -92,7 +95,7 @@ def test_torch_inductor_backend_build(mode, dtype, model, sample_data, tmp_path)
     do_test_backend(backend, dtype, model, sample_data, tmp_path)
 
 
-@requires_cuda
+@requires_xpu
 def test_torch_inductor_backend_with_options(model, sample_data, tmp_path):
     """Test backend with custom options."""
     # Testing with some common inductor options
@@ -106,7 +109,7 @@ def test_torch_inductor_backend_with_options(model, sample_data, tmp_path):
     do_test_backend(backend, torch.float32, model, sample_data, tmp_path)
 
 
-@requires_cuda
+@requires_xpu
 @pytest.mark.parametrize(
     "autocast_dtype",
     [torch.float16, torch.bfloat16],
@@ -126,7 +129,7 @@ def test_torch_inductor_backend_with_mode_and_options():
         TorchInductorBackend(config=config)
 
 
-@requires_cuda
+@requires_xpu
 def test_serialization(model, sample_data, tmp_path):
     backend = backend_build(TorchInductorBackend(), torch.float16, model, sample_data, tmp_path)
     state_dict = backend.to_dict()  # type: ignore

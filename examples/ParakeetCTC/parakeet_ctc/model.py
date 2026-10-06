@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Model utilities for ASR pipeline."""
 
 from copy import deepcopy
@@ -9,7 +12,7 @@ import nemo.core.neural_types.neural_type
 import torch
 from nemo.core.classes.common import typecheck
 
-from aitune.torch import Module, TuneStrategy
+from torch_tweak.torch import Module, TuneStrategy
 
 
 def get_model(model_name: str = "nvidia/parakeet-ctc-0.6b") -> nemo.collections.asr.models.EncDecCTCModel:
@@ -45,10 +48,10 @@ def get_model(model_name: str = "nvidia/parakeet-ctc-0.6b") -> nemo.collections.
     asr_model.change_decoding_strategy(cfg)
 
     asr_model.eval()
-    asr_model = asr_model.to("cuda")
+    asr_model = asr_model.to("xpu")
 
     # Note: Move STFT window to GPU
-    asr_model.preprocessor.featurizer.window = asr_model.preprocessor.featurizer.window.to("cuda")
+    asr_model.preprocessor.featurizer.window = asr_model.preprocessor.featurizer.window.to("xpu")
 
     return asr_model
 

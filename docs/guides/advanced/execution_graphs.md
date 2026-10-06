@@ -1,13 +1,16 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # Execution Graphs
 
 ## Overview
 
-During the tuning process, AITune analyzes module inputs to detect unique **execution graphs**—distinct computational paths through your model based on input characteristics. Understanding execution graphs is crucial because:
+During the tuning process, Torch Tweak analyzes module inputs to detect unique **execution graphs**-distinct computational paths through your model based on input characteristics. Understanding execution graphs is crucial because:
 
 - **Separate Optimization**: Each graph is tuned independently with its own optimized backend
 - **Dynamic Shape Support**: Graphs capture relationships between batch sizes, dynamic dimensions, and static shapes
@@ -15,30 +18,30 @@ During the tuning process, AITune analyzes module inputs to detect unique **exec
 
 ## What Defines an Execution Graph?
 
-AITune creates a new execution graph when it encounters inputs that differ in these ways:
+Torch Tweak creates a new execution graph when it encounters inputs that differ in these ways:
 
 - **Tensor Rank**: Tensors with different numbers of dimensions
 
    ```python
-   module(torch.randn(1, 10))       # Graph 0: rank-2 tensor
-   module(torch.randn(1, 10, 5))    # Graph 1: rank-3 tensor (different graph!)
+   module(torch.randn(1, 10))  # Graph 0: rank-2 tensor
+   module(torch.randn(1, 10, 5))  # Graph 1: rank-3 tensor (different graph!)
    ```
 
 - **Argument Structure**: Different combinations of positional and keyword arguments
 
    ```python
-   module(torch.randn(1, 10))              # Graph 0
-   module(torch.randn(1, 10), mask=True)   # Graph 1: additional kwarg
+   module(torch.randn(1, 10))  # Graph 0
+   module(torch.randn(1, 10), mask=True)  # Graph 1: additional kwarg
    ```
 
 - **Non-Tensor Arguments** (in strict mode): Different primitive values or configurations
 
    ```python
-   module(x, mode="train")    # Graph 0
-   module(x, mode="eval")     # Graph 1 (if strict_mode=True)
+   module(x, mode="train")  # Graph 0
+   module(x, mode="eval")  # Graph 1 (if strict_mode=True)
    ```
 
-**Important**: Tensors with the same rank but different shapes belong to the **same graph**. AITune handles shape variations through dynamic shape tracking (batch axes and dynamic dimensions).
+**Important**: Tensors with the same rank but different shapes belong to the **same graph**. Torch Tweak handles shape variations through dynamic shape tracking (batch axes and dynamic dimensions).
 
 ## Graph Detection in the Tuning Workflow
 
@@ -46,7 +49,7 @@ Execution graphs are detected during the **Sample Gathering Phase** of tuning:
 
 1. Your model is executed with samples from the dataset
 2. Each wrapped module records input/output metadata using `SampleMetadata`
-3. AITune compares metadata to identify unique graph patterns
+3. Torch Tweak compares metadata to identify unique graph patterns
 4. Each unique pattern becomes a separate `GraphSpec`
 5. During **Module Tuning**, each graph is optimized independently
 
@@ -61,7 +64,7 @@ This guide explores the technical details of execution graphs through the lens o
 - Tracking shape ranges (min/max) across samples
 - Enabling dynamic batching and shape inference
 
-By the end of this guide, you'll understand how AITune:
+By the end of this guide, you'll understand how Torch Tweak:
 
 - Identifies which inputs belong to the same graph
 - Learns dynamic shape patterns from multiple samples
@@ -90,7 +93,8 @@ Let's start with a simple example:
 ```python
 from dataclasses import dataclass
 import torch
-from aitune.torch.module.sample_metadata import SampleMetadata, InfoLevel
+from torch_tweak.torch.module.sample_metadata import SampleMetadata, InfoLevel
+
 # Create a simple tensor and capture its metadata
 simple_tensor = torch.randn(2, 3, 4)
 args = (simple_tensor,)
@@ -132,7 +136,6 @@ kwargs = {}
 meta1 = SampleMetadata.from_inputs(args, kwargs)
 print("Example 1 - Multiple args:")
 print(repr(meta1))
-
 ```
 
 ```text
@@ -175,9 +178,9 @@ Tensors:
 ```python
 # Example 3: Mixed primitives and tensors
 args = (
-    "some_string",           # Primitive - ignored by default
-    torch.randn(2, 2),       # Tensor - tracked
-    42,                      # Primitive - ignored by default
+    "some_string",  # Primitive - ignored by default
+    torch.randn(2, 2),  # Tensor - tracked
+    42,  # Primitive - ignored by default
 )
 kwargs = {
     "data": torch.randn(3, 3),
@@ -188,7 +191,6 @@ meta3 = SampleMetadata.from_inputs(args, kwargs)
 print("Example 3 - Mixed types (strict=False):")
 print(repr(meta3))
 print("\nNotice that only tensors are tracked!")
-
 ```
 
 ```text
@@ -207,7 +209,7 @@ Notice that only tensors are tracked!
 
 ## Strict vs. Non-Strict Mode
 
-By default during tuning, AITune operates in **strict mode** (`config.strict_mode=True`), which means `SampleMetadata` captures both tensors and non-tensor data (primitives, strings, etc.). This ensures different argument values create different execution graphs.
+By default during tuning, Torch Tweak operates in **strict mode** (`config.strict_mode=True`), which means `SampleMetadata` captures both tensors and non-tensor data (primitives, strings, etc.). This ensures different argument values create different execution graphs.
 
 However, when calling `SampleMetadata.from_inputs()` directly with `strict=False`, it only tracks tensors and ignores all other data types. This is useful when you only care about tensor shapes for optimization purposes.
 
@@ -228,13 +230,12 @@ kwargs = {"t": torch.randn(2, 3), "other": "abc"}
 meta_non_strict = SampleMetadata.from_inputs(args, kwargs, strict=False)
 print("Non-Strict Mode (strict=False):")
 print(repr(meta_non_strict))
-print("\n" + "="*80 + "\n")
+print("\n" + "=" * 80 + "\n")
 
 # Strict mode
 meta_strict = SampleMetadata.from_inputs(args, kwargs, strict=True)
 print("Strict Mode (strict=True):")
 print(repr(meta_strict))
-
 ```
 
 ```text
@@ -294,25 +295,25 @@ class ModelInput:
     data: torch.Tensor
     metadata: str
 
+
 # Create complex nested structure
 args = [
     "first_arg",
-    torch.randn(1),                                      # Simple tensor
-    (torch.randn(2), torch.randn(3)),                    # Tuple of tensors
-    {"t": torch.randn(4)},                               # Dict with tensor
-    ModelInput(data=torch.randn(5), metadata="info"),    # Dataclass with tensor
+    torch.randn(1),  # Simple tensor
+    (torch.randn(2), torch.randn(3)),  # Tuple of tensors
+    {"t": torch.randn(4)},  # Dict with tensor
+    ModelInput(data=torch.randn(5), metadata="info"),  # Dataclass with tensor
 ]
 
 kwargs = {
     "t1": torch.randn(1, 1),
-    "t2": [torch.randn(2, 2), torch.randn(3, 3)],        # List of tensors
+    "t2": [torch.randn(2, 2), torch.randn(3, 3)],  # List of tensors
     "t3": ModelInput(data=torch.randn(4, 4), metadata="xyz"),
     "last": "other",
 }
 
 nested_meta = SampleMetadata.from_inputs(args, kwargs, strict=True)
 print(repr(nested_meta))
-
 ```
 
 ```text
@@ -383,15 +384,14 @@ meta = SampleMetadata.from_inputs(args, kwargs)
 
 print("InfoLevel.SHORT:")
 print(meta.describe(InfoLevel.SHORT))
-print("\n" + "="*80 + "\n")
+print("\n" + "=" * 80 + "\n")
 
 print("InfoLevel.MEDIUM:")
 print(meta.describe(InfoLevel.MEDIUM))
-print("\n" + "="*80 + "\n")
+print("\n" + "=" * 80 + "\n")
 
 print("InfoLevel.FULL:")
 print(meta.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -459,7 +459,6 @@ kwargs_initial = {
 meta_initial = SampleMetadata.from_inputs(args_initial, kwargs_initial, strict=False, batch_size=1)
 print("Initial Metadata (batch_size=1):")
 print(meta_initial.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -481,9 +480,9 @@ Tensors:
 ```python
 # Create second metadata with different shapes and batch size 2
 args_second = [
-    torch.randn(2),      # Doubled (batch axis)
-    torch.randn(5),      # Changed but not proportionally (dynamic)
-    torch.randn(15),     # Changed but not proportionally (dynamic)
+    torch.randn(2),  # Doubled (batch axis)
+    torch.randn(5),  # Changed but not proportionally (dynamic)
+    torch.randn(15),  # Changed but not proportionally (dynamic)
 ]
 kwargs_second = {
     "data": torch.randn(2, 25),  # First dim doubled, second changed
@@ -492,7 +491,6 @@ kwargs_second = {
 meta_second = SampleMetadata.from_inputs(args_second, kwargs_second, strict=False, batch_size=2)
 print("Second Metadata (batch_size=2):")
 print(meta_second.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -516,7 +514,6 @@ Tensors:
 meta_initial.update_shapes_seen(meta_second)
 print("Updated Metadata (after seeing both samples):")
 print(meta_initial.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -580,7 +577,6 @@ meta.update_shapes_seen(meta2)
 
 print("Learned Metadata:")
 print(meta.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -615,7 +611,6 @@ print("After make_batch(batch_size=10):")
 print(f"  args[0]: {batched_args[0].shape}")
 print(f"  args[1]: {batched_args[1].shape}")
 print(f"  kwargs['mask']: {batched_kwargs['mask'].shape}")
-
 ```
 
 ```text
@@ -730,6 +725,7 @@ class ModelInputs:
     attention_mask: torch.Tensor
     position_ids: torch.Tensor
 
+
 # Sample 1: batch_size=1, seq_len=10
 sample1_args = ()
 sample1_kwargs = {
@@ -775,7 +771,6 @@ metadata.update_shapes_seen(metadata2)
 
 print("After Sample 2 (batch=2, seq_len=15):")
 print(metadata.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -808,7 +803,6 @@ metadata.update_shapes_seen(metadata3)
 
 print("After Sample 3 (batch=4, seq_len=20):")
 print(metadata.describe(InfoLevel.FULL))
-
 ```
 
 ```text
@@ -860,7 +854,6 @@ print(f"  input_ids: {scaled_kwargs['inputs'].input_ids.shape}")
 print(f"  attention_mask: {scaled_kwargs['inputs'].attention_mask.shape}")
 print(f"  position_ids: {scaled_kwargs['inputs'].position_ids.shape}")
 print("\nNote: Batch dimension scaled to 8, but sequence length (dim1) remained at 12")
-
 ```
 
 ```text
@@ -897,20 +890,20 @@ Note: Batch dimension scaled to 8, but sequence length (dim1) remained at 12
 
 8. **TensorSpec**: The underlying representation of each tensor, containing shape, dtype, and batch information.
 
-### Use in AI-Tune Pipeline
+### Use in Torch Tweak Pipeline
 
-`SampleMetadata` is a fundamental building block in the AITune library, used by:
+`SampleMetadata` is a fundamental building block in the Torch Tweak library, used by:
 
 - **RecordingModule**: Captures input/output metadata during profiling
-- **Backends**: Use metadata to configure optimized execution (TensorRT, TorchScript, etc.)
+- **Backends**: Use metadata to configure optimized execution
 - **Graph Compilation**: Enables the creation of optimized graphs for dynamic shapes
 
 ### Source Code
 
 For more details, see:
 
-- `aitune/torch/module/sample_metadata.py`
-- `aitune/torch/module/tensor_spec.py`
-- `aitune/torch/module/locator.py`
+- `torch_tweak/torch/module/sample_metadata.py`
+- `torch_tweak/torch/module/tensor_spec.py`
+- `torch_tweak/torch/module/locator.py`
 
 If you would like to tinker with `SampleMetadata`, you can find this example in `notebooks/sample_metadata_walkthrough.ipynb`.

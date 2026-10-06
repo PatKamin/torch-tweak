@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Inference for ASR model."""
 
 import statistics
@@ -11,9 +13,9 @@ from pathlib import Path
 import torch
 from nemo.collections.asr.parts.mixins.transcription import InternalTranscribeConfig, TranscribeConfig
 
-from aitune.torch import load
 from parakeet_rnnt.model import get_model
 from parakeet_rnnt.tune import parse_args
+from torch_tweak.torch import load
 
 logger = getLogger(__name__)
 
@@ -27,14 +29,14 @@ def benchmark(model, test_files, num_runs=1):
         return model.transcribe(
             *args,
             **kwargs,
-            override_config=TranscribeConfig(_internal=InternalTranscribeConfig(device=torch.device("cuda"))),
+            override_config=TranscribeConfig(_internal=InternalTranscribeConfig(device=torch.device("xpu"))),
             verbose=False,
         )
 
     # Warmup
     for _ in range(3):
         infer(**test_files)
-        # torch.cuda.empty_cache() # Add cache clearing
+        # torch.xpu.empty_cache() # Add cache clearing
 
     # Time it
     times = []
@@ -46,7 +48,7 @@ def benchmark(model, test_files, num_runs=1):
         print(f"   Run {i + 1}: {times[-1]:.3f}s")
         # Aggressive cleanup after each run
         # gc.collect()
-        # torch.cuda.empty_cache()
+        # torch.xpu.empty_cache()
 
     avg_time = statistics.mean(times)
     throughput = len(test_files["audio"]) / avg_time
@@ -64,7 +66,7 @@ def compare(
     """Do inference on a tuned ParakeetRNNT model."""
     torch.set_grad_enabled(False)
 
-    print("🚀 PARAKEET ACCELERATION WITH AITUNE")
+    print("🚀 PARAKEET ACCELERATION WITH TORCH_TWEAK")
     print("=" * 60)
     print(f"🔧 Model: {model_name}")
     print(f"💪 Batch size: {batch_size}")

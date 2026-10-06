@@ -1,11 +1,14 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
-# LLM models tuning with NVIDIA AITune
+# LLM models tuning with Torch Tweak
 
-This example demonstrates how to use NVIDIA AITune to tune LLMs.
+This example demonstrates how to use Torch Tweak to tune LLMs.
 
 ## Environment Setup
 
@@ -16,7 +19,9 @@ You can use either of the following options to set up the environment:
 Activate your virtual environment and install the dependencies:
 
 ```bash
-pip install --extra-index-url https://pypi.nvidia.com .
+pip install --index-url https://download.pytorch.org/whl/xpu \
+        --extra-index-url https://pypi.org/simple \
+        .
 ```
 
 ### Option 2 - virtual environment managed by `uv`
@@ -69,7 +74,7 @@ Arguments:
 - `--iterations`: Number of benchmark iterations
 - `--warmup_iters`: Number of warmup iterations
 - `--cache`: Cache type ("no_cache", "dynamic", "static")
-- `--scenario`: Benchmark scenario ("vanilla", "aot")
+- `--scenario`: Benchmark scenario ("vanilla", "tuned")
 
 ### Benchmark All
 
@@ -100,7 +105,7 @@ Arguments:
 
 ### Detecting prefill/decode, kv cache entries
 
-During prefill AITune detects inputs as:
+During prefill Torch Tweak detects inputs as:
 ```
  Tensors:
 ╒════════════════════╤═══════════════════════╤═══════════════════════════════╤═══════════════╤═══════════════╤═════════════╕

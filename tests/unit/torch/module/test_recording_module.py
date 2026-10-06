@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Unit test for recording module."""
 
 from unittest.mock import Mock
@@ -7,13 +9,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from aitune.torch.config import AITuneConfig
-from aitune.torch.module.recording_module import RecordingModule
 from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.config import TorchTweakConfig
+from torch_tweak.torch.module.recording_module import RecordingModule
 
 
 def recording_module(strict_mode):
-    config = AITuneConfig()
+    config = TorchTweakConfig()
     config.max_num_samples_stored = 10
     config.min_num_samples = 2
     config.strict_mode = strict_mode

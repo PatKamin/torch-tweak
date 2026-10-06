@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for testing custom user types e.g. kv cache for LLM support."""
 
 import abc
@@ -9,15 +12,15 @@ from logging import DEBUG, basicConfig
 import pytest
 import torch
 
-from aitune.torch import Module, OneBackendStrategy
-from aitune.torch.backend import TorchInductorBackend
-from aitune.torch.module.locator import Locator
-from aitune.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch import Module, OneBackendStrategy
+from torch_tweak.torch.backend import TorchInductorBackend
+from torch_tweak.torch.module.locator import Locator
+from torch_tweak.torch.module.wrapper_module import ModuleState
 
 try:
-    from tests.utilities.helpers import requires_cuda
+    from tests.utilities.helpers import requires_xpu
 except ImportError:
-    requires_cuda = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
+    requires_xpu = pytest.mark.skipif(not torch.xpu.is_available(), reason="XPU is not available")
 
 # --- LLM Parameters ---
 BATCH_SIZE = 1
@@ -213,7 +216,7 @@ class ToyLLMModel(torch.nn.Module):
         return result, kv_cache
 
 
-@requires_cuda
+@requires_xpu
 @pytest.mark.parametrize("cache_type", [DynamicKVCache, StaticKVCache])
 @pytest.mark.parametrize("registered_type", [False, True], ids=["unregistered", "registered"])
 def test_llm_dynamic_cache(cache_type, registered_type, torch_device):
@@ -252,7 +255,7 @@ def test_llm_dynamic_cache(cache_type, registered_type, torch_device):
     model.eval()
     kv_cache = cache_type()
 
-    model = Module(model, "test_llm")  # wrap the model with AITune
+    model = Module(model, "test_llm")  # wrap the model with Torch Tweak
     with torch.no_grad():
         result, kv_cache = model.generate(prompt_token_ids, kv_cache, max_seq_len=MAX_SEQ_LEN)
 
@@ -279,4 +282,4 @@ if __name__ == "__main__":
             logging.info("-" * len(log_msg))
             logging.info(log_msg)
             logging.info("-" * len(log_msg))
-            test_llm_dynamic_cache(cache_type, registered_type, torch_device=torch.device("cuda"))
+            test_llm_dynamic_cache(cache_type, registered_type, torch_device=torch.device("xpu"))

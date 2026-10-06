@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Common command line arguments for ParakeetCTC."""
 
 import argparse
@@ -30,7 +33,7 @@ def parse_args() -> argparse.Namespace:
         "--tuned-model-path",
         type=Path,
         required=False,
-        default="parakeet_ctc_0.6b_tuned.ait",
+        default="parakeet_ctc_0.6b_tuned.tt",
         help="Saved model file path",
     )
     return parser.parse_args()

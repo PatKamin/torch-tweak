@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 import datasets
 import numpy as np
 import pytest
@@ -7,7 +10,8 @@ import torch
 from transformers import AutoTokenizer
 from transformers.data.data_collator import DataCollatorWithPadding
 
-from aitune.torch.dataloader import (
+from tests.utilities.prompts import PROMPTS_PATH
+from torch_tweak.torch.dataloader import (
     DataLoaderFactory,
     DatasetLike,
     InputConfig,
@@ -15,7 +19,6 @@ from aitune.torch.dataloader import (
     ensure_enough_samples,
     samples_generator,
 )
-from tests.utilities.prompts import PROMPTS_PATH
 
 
 def simulate_tuning_loop(dataset: DatasetLike, batch_sizes: list[int]):
@@ -206,7 +209,7 @@ def test_dynamic_shapes_fails():
 
 
 def test_llm_padding_collator():
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    tokenizer = AutoTokenizer.from_pretrained("gpt2", revision="607a30d783dfa663caf39e06633721c8d4cfcd7e")
 
     # Add padding token (fix for gpt2)
     tokenizer.pad_token = tokenizer.eos_token
@@ -221,9 +224,9 @@ def test_llm_padding_collator():
         )
 
     # Load raw dataset first
-    dataset = datasets.load_dataset("json", data_files=str(PROMPTS_PATH), split="train[:100]").map(
-        tokenize, remove_columns=["prompt", "act"]
-    )
+    dataset = datasets.load_dataset(  # nosec B615
+        "json", data_files=str(PROMPTS_PATH), split="train[:100]"
+    ).map(tokenize, remove_columns=["prompt", "act"])
 
     dl_config = DataLoaderFactory(dataset, collate_fn=DataCollatorWithPadding(tokenizer=tokenizer, padding=True))
 
@@ -445,3 +448,15 @@ def test_ensure_enough_samples_empty_dataset():
     assert len(dataset) == 0
 
     assert dataset == []
+
+
+def test_ensure_enough_samples_empty_torch_dataset_raises():
+    class EmptyDataset(torch.utils.data.Dataset):
+        def __getitem__(self, index):
+            raise IndexError
+
+        def __len__(self):
+            return 0
+
+    with pytest.raises(ValueError, match="empty torch.utils.data.Dataset"):
+        ensure_enough_samples(EmptyDataset(), 10)

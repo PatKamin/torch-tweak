@@ -1,14 +1,16 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Tests for model state storage functionality."""
 
 from pathlib import Path
 
 import pytest
 
-from aitune.torch.checkpoint.local_torch_storage import LocalTorchStorage
-from aitune.torch.checkpoint.storage_tasks import (
-    AIT_EXTENSION,
+from torch_tweak.torch.checkpoint.local_torch_storage import LocalTorchStorage
+from torch_tweak.torch.checkpoint.storage_tasks import (
+    TT_EXTENSION,
     get_sha_sums_path,
 )
 
@@ -19,7 +21,7 @@ def do_test_save_load_torch_task(storage, checkpoint_path, compress_checkpoint=T
     storage.save(checkpoint_path, state_dict)
 
     if compress_checkpoint:
-        assert (checkpoint_path.with_name(checkpoint_path.name + AIT_EXTENSION)).exists()
+        assert (checkpoint_path.with_name(checkpoint_path.name + TT_EXTENSION)).exists()
         internal_sha_sums = get_sha_sums_path(checkpoint_path, sha_type)
         assert internal_sha_sums.exists()
         external_sha_sums = internal_sha_sums.parent.parent / internal_sha_sums.name

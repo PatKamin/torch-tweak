@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
+
+
+import pytest
+import timm
+import torch
+
+from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
+from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.tune_strategy.one_backend_strategy import OneBackendStrategy
+
+
+@pytest.mark.nightly
+def test_resnet50():
+    # given
+    device = torch.device("xpu")
+
+    model = timm.create_model("resnet50", pretrained=False)
+    model.to(device)
+    model.eval()
+    data = torch.randn((2, 3, 224, 224), device=device)
+
+    def pre_hook(module, input):  # noqa: A002
+        # this actually inject data into the model
+        return data
+
+    def post_hook(module, input, output):  # noqa: A002
+        # this extract max detected element
+        return torch.argmax(output, dim=1)
+
+    model.register_forward_pre_hook(pre_hook)
+    model.register_forward_hook(post_hook)
+
+    with torch.no_grad():
+        expected_arg_max = model()  # notice: not argument - it will be added by pre hook
+
+    # when
+    module = Module(model, "functional-resnet50")
+
+    # then - verify recording
+    module()  # notice: not argument - it will be added by pre hook
+    assert len(module.graph_specs) == 1
+
+    # then - verify tuning
+    strategy = OneBackendStrategy(TorchInductorBackend())
+    module.tune(device=device, strategy=strategy, dry_run=False)
+    actual_arg_max = module(data)
+    torch.testing.assert_close(actual_arg_max, expected_arg_max, rtol=1e-4, atol=1e-5)
+
+
+if __name__ == "__main__":
+    raise SystemExit(pytest.main([__file__, "-v"]))

@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Benchmark functions."""
 
 import logging
@@ -121,9 +124,9 @@ def benchmark(
         with torch.no_grad():
             for _ in range(iterations):
                 start = perf_counter()
-                torch.cuda.synchronize()
+                torch.xpu.synchronize()
                 model.generate(**inputs, **gen_args)
-                torch.cuda.synchronize()
+                torch.xpu.synchronize()
                 times.append(perf_counter() - start)
         return times
 
@@ -172,7 +175,7 @@ def benchmark_scenario(args: BenchmarkArgs):
         generate_args["cache_implementation"] = args.cache
         generate_args["use_cache"] = True
 
-    if args.scenario == "aot":
+    if args.scenario == "tuned":
         generate_args["disable_compile"] = True  # prevent compilation by HF
         model = tune_model(model, tokenizer, args.cache)
     else:

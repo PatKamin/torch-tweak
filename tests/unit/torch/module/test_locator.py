@@ -1,11 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 import dataclasses
 
+import pytest
 import torch
 
-from aitune.torch.module.locator import Locator, ObjectType
+from tests.utilities.helpers import save_and_load_weights_only
+from torch_tweak.torch.module.locator import Locator, ObjectType
 
 
 class UserType:
@@ -391,3 +395,82 @@ def test_locator_leaf_name():
 
     locator = Locator((("field", ObjectType.DATACLASS), (0, ObjectType.SEQUENCE), ("key", ObjectType.DICT)))
     assert locator.leaf_name == "key"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param((), id="empty"),
+        pytest.param(((0, ObjectType.SEQUENCE),), id="sequence"),
+        pytest.param((("key", ObjectType.DICT),), id="dict"),
+        pytest.param(((1, ObjectType.DICT),), id="integer-dict-key"),
+        pytest.param((("field", ObjectType.DATACLASS),), id="dataclass"),
+        pytest.param((("attr", ObjectType.USER_TYPE),), id="user-type"),
+        pytest.param(
+            (("field", ObjectType.DATACLASS), (0, ObjectType.SEQUENCE), ("key", ObjectType.DICT)),
+            id="mixed",
+        ),
+    ],
+)
+def test_locator_to_dict_from_dict(path):
+    locator = Locator(path)
+    result = Locator.from_dict(locator.to_dict())
+    assert locator == result
+    assert hash(locator) == hash(result)
+    assert list(result.path_iter()) == list(path)
+
+
+def test_locator_to_dict_holds_only_primitives():
+    locator = Locator((("key", ObjectType.DICT), (0, ObjectType.SEQUENCE)))
+    assert locator.to_dict() == {"type": "Locator", "path": [["key", 1], [0, 0]]}
+
+
+def test_locator_from_dict_rejects_invalid_data():
+    with pytest.raises(ValueError, match="Invalid dictionary format"):
+        Locator.from_dict({"path": []})
+
+    with pytest.raises(ValueError, match="Invalid Locator accessor"):
+        Locator.from_dict({"type": "Locator", "path": [[["nested"], 0]]})
+
+    with pytest.raises(ValueError, match="99 is not a valid ObjectType"):
+        Locator.from_dict({"type": "Locator", "path": [["key", 99]]})
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param(((True, ObjectType.SEQUENCE),), id="bool-sequence"),
+        pytest.param(((True, ObjectType.DICT),), id="bool-dict"),
+        pytest.param((("index", ObjectType.SEQUENCE),), id="string-sequence"),
+        pytest.param(((0, ObjectType.DATACLASS),), id="integer-dataclass"),
+        pytest.param(((("tuple",), ObjectType.DICT),), id="tuple-dict-key"),
+    ],
+)
+def test_locator_to_dict_rejects_invalid_accessor(path):
+    with pytest.raises(ValueError, match="Invalid Locator accessor"):
+        Locator(path).to_dict()
+
+
+@pytest.mark.parametrize(
+    "accessor,obj_type",
+    [
+        pytest.param(True, ObjectType.SEQUENCE, id="bool-sequence"),
+        pytest.param(True, ObjectType.DICT, id="bool-dict"),
+        pytest.param("index", ObjectType.SEQUENCE, id="string-sequence"),
+        pytest.param(0, ObjectType.DATACLASS, id="integer-dataclass"),
+        pytest.param(("tuple",), ObjectType.DICT, id="tuple-dict-key"),
+    ],
+)
+def test_locator_from_dict_rejects_accessor_mismatched_with_object_type(accessor, obj_type):
+    with pytest.raises(ValueError, match="Invalid Locator accessor"):
+        Locator.from_dict({"type": "Locator", "path": [[accessor, int(obj_type)]]})
+
+
+def test_locator_survives_weights_only_load(tmp_path):
+    """A serialized locator must load without reconstructing arbitrary objects."""
+    locator = Locator((("field", ObjectType.DATACLASS), (0, ObjectType.SEQUENCE), ("key", ObjectType.DICT)))
+
+    result = Locator.from_dict(save_and_load_weights_only(locator.to_dict(), tmp_path))
+
+    assert result == locator
+    assert list(result.path_iter()) == list(locator.path_iter())

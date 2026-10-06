@@ -1,15 +1,18 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # Deployment Guide
 
-This guide covers deploying AITune-tuned models in production environments, from saving tuned models to loading them in production systems.
+This guide covers deploying Torch Tweak-tuned models in production environments, from saving tuned models to loading them in production systems.
 
 ## Overview
 
-AITune provides comprehensive tools for model deployment:
+Torch Tweak provides comprehensive tools for model deployment:
 
 - **Save/Load**: Persist and restore tuned models
 - **Storage Options**: Local and custom storage backends
@@ -21,20 +24,20 @@ AITune provides comprehensive tools for model deployment:
 ### Save a Tuned Model
 
 ```python
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # After tuning
-ait.save(tuned_model, "model.ait")
+tt.save(tuned_model, "model.tt")
 ```
 
 ### Load a Tuned Model
 
 ```python
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # In production
 model = YourModel()
-model = ait.load(model, "model.ait")
+model = tt.load(model, "model.tt")
 output = model(input_data)
 ```
 
@@ -43,22 +46,22 @@ output = model(input_data)
 ### Basic Save
 
 ```python
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # Save after tuning
-ait.save(model, "checkpoints/model.ait")
+tt.save(model, "checkpoints/model.tt")
 ```
 
 This creates:
 
-- `checkpoints/model.ait`: Compressed checkpoint with tuned modules
+- `checkpoints/model.tt`: Compressed checkpoint with tuned modules
 - `checkpoints/model_sha256_sums.txt`: SHA256 checksums
 - `checkpoints/model/`: Decompressed artifacts (after first load)
 
 ### With Custom Storage
 
 ```python
-from aitune.torch import LocalTorchStorage
+from torch_tweak.torch import LocalTorchStorage
 
 # Configure storage
 storage = LocalTorchStorage(
@@ -67,7 +70,7 @@ storage = LocalTorchStorage(
 )
 
 # Save with custom storage
-ait.save(model, "model_v2.ait", storage=storage)
+tt.save(model, "model_v2.tt", storage=storage)
 ```
 
 ## Loading Tuned Models
@@ -75,15 +78,15 @@ ait.save(model, "model_v2.ait", storage=storage)
 ### Basic Load
 
 ```python
-import aitune.torch as ait
+import torch_tweak.torch as tt
 
 # Create model instance
 model = YourModel()
 model.eval()
-model.to("cuda")
+model.to("xpu")
 
 # Load tuned version
-ait.load(model, "checkpoints/model.ait")
+tt.load(model, "checkpoints/model.tt")
 
 # Ready for inference
 output = model(input_data)
@@ -92,17 +95,17 @@ output = model(input_data)
 ### With Custom Storage
 
 ```python
-from aitune.torch import LocalTorchStorage
+from torch_tweak.torch import LocalTorchStorage
 
 storage = LocalTorchStorage(base_folder="production/models")
-ait.load(model, "model.ait", storage=storage)
+tt.load(model, "model.tt", storage=storage)
 ```
 
 ### Loading Process
 
 1. First Load:
 
-- Decompresses `.ait` file
+- Decompresses `.tt` file
 - Extracts artifacts to `checkpoints/` directory
 - Verifies checksums
 - Loads backend and weights
@@ -116,6 +119,6 @@ ait.load(model, "model.ait", storage=storage)
 
 ## Next Steps
 
-- Review [AOT Tuning](../aot_tuning.md) for tuning best practices
+- Review the [Tuning Guide](../tuning.md)
 - Explore [Tune Strategies](../tune_strategies/tune_strategies.md) for optimization
-- Check [Backend Guides](../backends/tensorrt_backend.md) for backend-specific deployment notes
+- Check [Backend Guides](../backends/torch_inductor_backend.md) for backend-specific deployment notes

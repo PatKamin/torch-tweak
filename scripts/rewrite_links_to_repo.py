@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Script with hook for replacing ../<anything> markdown links in docs to git repo."""
 
 import logging
@@ -17,7 +20,7 @@ def on_page_markdown(markdown: str, config, **kwargs):
 
     def _replace(_md_path):
         repo_url = config["repo_url"]
-        view_uri_template = config["view_uri_template"]
+        view_uri_template = config["extra"]["view_uri_template"]
         path = pathlib.Path("docs") / _md_path
         path = path.resolve().relative_to(pathlib.Path.cwd())
         full_url = f"{repo_url}/{view_uri_template.format(ref=ref, path=path)}"
@@ -31,7 +34,7 @@ def on_page_markdown(markdown: str, config, **kwargs):
 
 
 def _get_current_ref():
-    ref = os.environ.get("CI_COMMIT_REF_NAME", None)
+    ref = os.environ.get("GITHUB_REF_NAME", None)
     if ref is None:
         import git
 

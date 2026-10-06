@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 # Created by https://www.toptal.com/developers/gitignore/api/python,direnv,pycharm+all,visualstudiocode,emacs
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,direnv,pycharm+all,visualstudiocode,emacs
 
@@ -191,6 +194,8 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+# Written into the working directory by the enable_inspection doctest.
+linear_net.html
 htmlcov/
 .tox/
 .nox/
@@ -207,7 +212,6 @@ coverage.xml
 pytestdebug.log
 cover/
 *.test-report.xml
-.gitlab-ci-local/
 *.csv
 
 # Translations
@@ -264,7 +268,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv*
 env/
 venv/
 ENV/
@@ -279,7 +283,7 @@ pythonenv*
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# ProperDocs documentation
 /site
 
 # mypy
@@ -324,7 +328,7 @@ cython_debug/
 ### Project specific files and directories ###
 tests/data
 workspace/
-docs/CHANGELOG.md
+docs/ChangeLog.md
 docs/CONTRIBUTING.md
 docs/LICENSE.md
 docs/README.md
@@ -335,7 +339,11 @@ version.yaml
 cache/
 
 
-.cursor
+# Cursor IDE (track shared agent rules; ignore other local state)
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/*.mdc
 demo/
 tmp/
 *.mk

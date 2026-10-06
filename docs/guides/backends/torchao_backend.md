@@ -1,6 +1,9 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 
 # TorchAO Backend Guide
@@ -17,18 +20,18 @@ The TorchAO backend leverages PyTorch's torchao library for quantization-based m
 ## Quick Start
 
 ```python
-from aitune.torch.backend import TorchAOBackend, TorchAOBackendConfig
-import aitune.torch as ait
+from torch_tweak.torch.backend import TorchAOBackend, TorchAOBackendConfig
+import torch_tweak.torch as tt
 
 # Configure with FP8 weight-only quantization
 config = TorchAOBackendConfig(quantization="fp8wo")
 backend = TorchAOBackend(config)
 
 # Use in tuning
-strategy = ait.OneBackendStrategy(backend=backend)
+strategy = tt.OneBackendStrategy(backend=backend)
 
-model = ait.Module(model, "my-model", strategy=strategy)
-ait.tune(model, input_data)
+model = tt.Module(model, "my-model", strategy=strategy)
+tt.tune(model, input_data)
 ```
 
 ## Quantization Types
@@ -113,6 +116,5 @@ config = TorchAOBackendConfig(quantization="fp8dq")
 
 ## Next Steps
 
-- Learn about [TensorRT Backend](tensorrt_backend.md) for maximum performance
 - Compare with [Torch Inductor Backend](torch_inductor_backend.md)
 - Review [Deployment Guide](../deployment/deployment.md)

@@ -1,14 +1,18 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 import datasets
+import pytest
 from transformers import T5Tokenizer  # pytype: disable=import-error
 
-from aitune.torch.dataloader import DataLoaderFactory
+from torch_tweak.torch.dataloader import DataLoaderFactory
 
 
+@pytest.mark.functional
 def test_transformers_t5_tokenizer():
-    tokenizer = T5Tokenizer.from_pretrained("t5-small")
+    tokenizer = T5Tokenizer.from_pretrained("t5-small", revision="df1b051c49625cf57a3d0d8d3863ed4d13564fe4")
 
     def tokenize(examples):
         data = tokenizer(
@@ -38,4 +42,4 @@ def test_transformers_t5_tokenizer():
 
 
 if __name__ == "__main__":
-    test_transformers_t5_tokenizer()
+    raise SystemExit(pytest.main([__file__, "-v"]))

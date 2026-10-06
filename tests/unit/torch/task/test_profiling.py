@@ -1,22 +1,24 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 import time
 
 import pytest
 
-from aitune.torch import Module
-from aitune.torch.backend import TorchEagerBackend
-from aitune.torch.task.profiling.config import ProfilingConfig
-from aitune.torch.task.profiling.events import ProfilingResultEvent
-from aitune.torch.task.profiling.measuring_stop_strategy import (
+from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch import Module
+from torch_tweak.torch.backend import TorchEagerBackend
+from torch_tweak.torch.task.profiling.config import ProfilingConfig
+from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
+from torch_tweak.torch.task.profiling.measuring_stop_strategy import (
     NumStepsMeasuringStopStrategy,
     StableWindowMeasuringStopStrategy,
 )
-from aitune.torch.task.profiling.metrics import get_throughput, is_throughput_saturated
-from aitune.torch.task.profiling.profiling import ProfilingStatus, profile, profile_backend
-from aitune.torch.task.profiling.profiling_stop_strategy import ThroughputSaturatedProfilingStopStrategy
-from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.task.profiling.metrics import get_throughput, is_throughput_saturated
+from torch_tweak.torch.task.profiling.profiling import ProfilingStatus, profile, profile_backend
+from torch_tweak.torch.task.profiling.profiling_stop_strategy import ThroughputSaturatedProfilingStopStrategy
 
 
 def new_event(

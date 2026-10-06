@@ -1,77 +1,68 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+
+NOTE: This file has been modified by Intel Corporation.
 -->
 # Backends
 
-NVIDIA AITune supports multiple tuning backends, each with different characteristics and use cases. The backends align with a common interface for the build and inference process.
+Torch Tweak supports multiple tuning backends, each with different characteristics and use cases. The backends align with a common interface for the build and inference process.
 
-## TensorRT Backend
+## OpenVINO Backend
 
-The TensorRT backend provides highly optimized inference using NVIDIA's TensorRT engine. It offers the best performance for production deployments. The backend integrates [TensorRT Model Optimizer](https://github.com/NVIDIA/TensorRT-Model-Optimizer) in a seamless flow.
-
-```python
-from aitune.torch.backend import TensorRTBackend, TensorRTBackendConfig, ONNXAutoCastConfig
-
-config = TensorRTBackendConfig(quantization_config=ONNXAutoCastConfig()) # FP16 autocast through ModelOpt
-backend = TensorRTBackend(config)
-```
-
-### CUDA Graphs Support
-
-The TensorRT backend supports CUDA Graphs for reduced CPU overhead and improved inference performance. CUDA Graphs automatically capture and replay GPU operations, eliminating kernel launch overhead for repeated inference calls. This feature is disabled by default.
-
-Keep in mind that graphs are automatically recaptured when input shapes change.
+The OpenVINO backend converts the module to an OpenVINO model and runs it on an Intel CPU or GPU.
 
 ```python
-from aitune.torch.backend import TensorRTBackend, TensorRTBackendConfig
+from torch_tweak.torch.backend import OpenVINOBackend
 
-# Enable CUDA Graphs for optimized inference
-config = TensorRTBackendConfig(use_cuda_graphs=True)
-backend = TensorRTBackend(config)
+backend = OpenVINOBackend()
 ```
 
-## Torch-TensorRT Backend (JIT)
-
-The Torch-TensorRT JIT backend integrates TensorRT tuning directly into PyTorch, providing seamless tuning without model conversion through
-`torch.compile`.
+Conversion defaults to `torch.export`. For modules that `torch.export` cannot capture, switch to the
+legacy trace-based conversion and optionally change the compile hint:
 
 ```python
-import torch
-from aitune.torch.backend import TorchTensorRTJitBackend, TorchTensorRTJitBackendConfig, TorchTensorRTConfig
+from torch_tweak.torch.backend import OpenVINOBackend, OpenVINOBackendConfig
 
-config = TorchTensorRTJitBackendConfig(compile_config=TorchTensorRTConfig(enabled_precisions={torch.float16}))
-backend = TorchTensorRTJitBackend(config)
+backend = OpenVINOBackend(OpenVINOBackendConfig(use_dynamo=False, performance_hint="THROUGHPUT"))
 ```
 
-## Torch-TensorRT Backend (AOT)
-
-The Torch-TensorRT backend integrates TensorRT tuning directly into PyTorch, providing seamless tuning without model conversion through `torch_tensorrt.compile`.
-
-```python
-import torch
-from aitune.torch.backend import TorchTensorRTAotBackend, TorchTensorRTAotBackendConfig, TorchTensorRTConfig
-
-config = TorchTensorRTAotBackendConfig(compile_config=TorchTensorRTConfig(enabled_precisions={torch.float16}))
-backend = TorchTensorRTAotBackend(config)
-```
+Guide: [OpenVINO Backend](../guides/backends/openvino_backend.md).
 
 ## TorchAO Backend
 
 The TorchAO backend leverages PyTorch's AO (Accelerated Optimization) framework for model tuning.
 
 ```python
-from aitune.torch.backend import TorchAOBackend
+from torch_tweak.torch.backend import TorchAOBackend
 
 backend = TorchAOBackend()
 ```
+
+Guide: [TorchAO Backend](../guides/backends/torchao_backend.md).
 
 ## Torch Inductor Backend
 
 The Torch Inductor backend uses PyTorch's Inductor compiler for model tuning.
 
 ```python
-from aitune.torch.backend import TorchInductorBackend
+from torch_tweak.torch.backend import TorchInductorBackend
 
 backend = TorchInductorBackend()
 ```
+
+Guide: [Torch Inductor Backend](../guides/backends/torch_inductor_backend.md).
+
+## Torch Eager Backend
+
+The Torch Eager backend runs the module with no compilation and no conversion. It is the baseline `HighestThroughputStrategy` compares the other backends against.
+
+```python
+from torch_tweak.torch.backend import TorchEagerBackend, TorchEagerBackendConfig
+import torch
+
+backend = TorchEagerBackend(TorchEagerBackendConfig(autocast_enabled=True, autocast_dtype=torch.float16))
+```
+
+Guide: [Torch Eager Backend](../guides/backends/torch_eager_backend.md).

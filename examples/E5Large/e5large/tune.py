@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Tune SentenceTransformer model."""
 
 import os
@@ -7,9 +10,9 @@ from logging import INFO, basicConfig, getLogger
 from pathlib import Path
 
 import torch
-from aitune.torch import HighestThroughputStrategy, inspect, save, tune, wrap
-from aitune.torch.backend import TensorRTBackend, TensorRTBackendConfig
-from aitune.torch.config import config as global_config
+from torch_tweak.torch import HighestThroughputStrategy, inspect, save, tune, wrap
+from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.config import config as global_config
 
 from .cmd_args import get_parser
 from .model import get_model
@@ -18,7 +21,7 @@ logger = getLogger(__name__)
 
 basicConfig(level=INFO, force=True)
 
-DEFAULT_OUTPUT_DIR = os.environ.get("AITUNE_OUTPUT_DIR", ".")
+DEFAULT_OUTPUT_DIR = os.environ.get("TORCH_TWEAK_OUTPUT_DIR", ".")
 DEFAULT_OUTPUT_FILE = Path(DEFAULT_OUTPUT_DIR) / "e5large_tuned.pt"
 
 
@@ -70,7 +73,7 @@ def tune_model(
             convert_to_numpy=False,
             convert_to_tensor=True,
             batch_size=4,
-            device="cuda",
+            device="xpu",
         )
 
     # NOTE: without min_depth=2, inspector finds a wrapper module `pipeline._modules["0"]` and fails with incorrect input in tunning
@@ -92,8 +95,8 @@ def tune_model(
         modules,
         strategy=HighestThroughputStrategy(
             backends=[
-                TensorRTBackend(),  # fails, symbolic_shapes.ConstraintViolationError - probably requires user specified dynamic shapes
-                TensorRTBackend(TensorRTBackendConfig(use_dynamo=False)),
+                TorchEagerBackend(),
+                TorchInductorBackend(),
             ]
         ).enable_find_max_batch_size(True),
     )

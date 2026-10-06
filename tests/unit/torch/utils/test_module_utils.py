@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 """Unit tests for PyTorch module utilities."""
 
@@ -7,8 +10,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.utils.module import count_parameters, format_num_parameters, offload
-from tests.utilities.helpers import requires_cuda
+from tests.utilities.helpers import requires_xpu
+from torch_tweak.torch.utils.module import count_parameters, format_num_parameters, offload
 
 
 @pytest.mark.parametrize(
@@ -48,11 +51,11 @@ def simple_model():
 
 @pytest.fixture
 def device():
-    """Return CUDA device."""
-    return torch.device("cuda:0")
+    """Return XPU device."""
+    return torch.device("xpu:0")
 
 
-@requires_cuda
+@requires_xpu
 def test_offload_moves_to_cpu_device(simple_model, device):
     """Test that offload replaces all parameters with CPU tensors.
 
@@ -64,7 +67,7 @@ def test_offload_moves_to_cpu_device(simple_model, device):
 
     # Verify model is on GPU
     for param in simple_model.parameters():
-        assert param.device.type == "cuda"
+        assert param.device.type == "xpu"
 
     # Offload weights to CPU (replaces parameter tensors)
     offload(simple_model, device="cpu")
@@ -74,16 +77,16 @@ def test_offload_moves_to_cpu_device(simple_model, device):
         assert param.device.type == "cpu"
 
 
-@requires_cuda
+@requires_xpu
 def test_offload_to_meta_frees_gpu_memory(device):
     """Test that offload_to_meta frees GPU memory by replacing tensors with meta.
 
     Replacing parameter tensors with meta tensors (which have no data) should
     free the GPU memory that was used by the original parameter tensors.
     """
-    # Clear CUDA cache first to get accurate measurements
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats(device)
+    # Clear XPU cache first to get accurate measurements
+    torch.xpu.empty_cache()
+    torch.xpu.reset_peak_memory_stats(device)
 
     # Create a larger model for more reliable memory measurements
     model = nn.Sequential(
@@ -95,23 +98,23 @@ def test_offload_to_meta_frees_gpu_memory(device):
     ).to(device)
 
     # Force memory allocation
-    torch.cuda.synchronize()
+    torch.xpu.synchronize()
 
     # Measure memory after model creation
-    memory_allocated_before = torch.cuda.memory_allocated(device)
+    memory_allocated_before = torch.xpu.memory_allocated(device)
     assert memory_allocated_before > 0, "Model should allocate some GPU memory"
 
     # Offload weights to meta (replace tensors)
     offload(model, device="meta")
 
     # Verify memory is freed (should be much less)
-    memory_allocated_after = torch.cuda.memory_allocated(device)
+    memory_allocated_after = torch.xpu.memory_allocated(device)
     memory_freed = memory_allocated_before - memory_allocated_after
 
     # At least 50% of memory should be freed (conservative threshold)
     # Using 50% instead of 80% to account for:
     # - Small models where overhead is proportionally larger
-    # - CUDA context and other allocations
+    # - XPU context and other allocations
     # - Potential fragmentation
     threshold = memory_allocated_before * 0.5
     assert memory_freed > threshold, (
@@ -122,7 +125,7 @@ def test_offload_to_meta_frees_gpu_memory(device):
     )
 
 
-@requires_cuda
+@requires_xpu
 def test_offload_gpu_to_cpu_to_meta(device):
     """Test complete offload sequence: GPU -> CPU -> meta.
 
@@ -131,9 +134,9 @@ def test_offload_gpu_to_cpu_to_meta(device):
     2. Offloading to CPU frees GPU memory
     3. Offloading to meta frees CPU memory
     """
-    # Clear CUDA cache first
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats(device)
+    # Clear XPU cache first
+    torch.xpu.empty_cache()
+    torch.xpu.reset_peak_memory_stats(device)
 
     # Create a larger model for reliable memory measurements
     model = nn.Sequential(
@@ -146,16 +149,16 @@ def test_offload_gpu_to_cpu_to_meta(device):
 
     # Step 1: Load model to GPU
     model.to(device)
-    torch.cuda.synchronize()
+    torch.xpu.synchronize()
 
-    gpu_memory_after_load = torch.cuda.memory_allocated(device)
+    gpu_memory_after_load = torch.xpu.memory_allocated(device)
     assert gpu_memory_after_load > 0, "Model should allocate GPU memory"
 
     # Step 2: Offload to CPU (should free GPU memory)
     offload(model, device="cpu")
-    torch.cuda.synchronize()
+    torch.xpu.synchronize()
 
-    gpu_memory_after_cpu_offload = torch.cuda.memory_allocated(device)
+    gpu_memory_after_cpu_offload = torch.xpu.memory_allocated(device)
 
     # GPU memory should be significantly reduced (at least 50%)
     gpu_memory_freed = gpu_memory_after_load - gpu_memory_after_cpu_offload
@@ -177,7 +180,7 @@ def test_offload_gpu_to_cpu_to_meta(device):
     assert next(model.parameters()).device.type == "meta"
 
     # GPU memory should remain low
-    gpu_memory_final = torch.cuda.memory_allocated(device)
+    gpu_memory_final = torch.xpu.memory_allocated(device)
     assert gpu_memory_final <= gpu_memory_after_cpu_offload, (
         f"GPU memory should not increase after meta offload. "
         f"After CPU: {gpu_memory_after_cpu_offload / 1e6:.2f} MB, "

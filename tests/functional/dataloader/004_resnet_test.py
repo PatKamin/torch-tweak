@@ -1,24 +1,30 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-
+#
+# NOTE: This file has been modified by Intel Corporation.
 import random
 
 import datasets
+import pytest
 from PIL import Image
 from transformers import AutoImageProcessor  # pytype: disable=import-error
 
-from aitune.torch.dataloader import samples_generator
+from torch_tweak.torch.dataloader import samples_generator
 
 
 def random_image_generator():
     """Generates random RGB image."""
-    arr = (random.randint(0, 255) for _ in range(224 * 224 * 3))
+    arr = (random.randint(0, 255) for _ in range(224 * 224 * 3))  # nosec B311
     img = Image.frombytes("RGB", (224, 224), bytes(arr))
     return img
 
 
+@pytest.mark.functional
 def test_resnet_dataset():
-    processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
+    processor = AutoImageProcessor.from_pretrained(
+        "microsoft/resnet-50", revision="34c2154c194f829b11125337b98c8f5f9965ff19"
+    )
 
     def process_images(example):
         # Load image from file as numpy array
@@ -28,7 +34,7 @@ def test_resnet_dataset():
             # Convert RGBA to RGB if needed
             image = image.convert("RGB")
 
-        processed = processor(images=image, input_data_format="channels_last", return_tensors="pt")
+        processed = processor(images=image, return_tensors="pt")
         return {
             "pixel_values": processed.pixel_values.squeeze(0),
         }
@@ -51,4 +57,4 @@ def test_resnet_dataset():
 
 
 if __name__ == "__main__":
-    test_resnet_dataset()
+    raise SystemExit(pytest.main([__file__, "-v"]))

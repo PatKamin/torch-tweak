@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.inspecting.module_inspector import ModuleInspector
+from torch_tweak.torch.inspecting.module_inspector import ModuleInspector
 
 
 @pytest.fixture
@@ -120,7 +123,7 @@ def test_reset(simple_model):
 def test_inspect_simple_model(mocker, simple_model):
     """Test inspecting a simple model."""
 
-    mocker.patch("aitune.torch.inspecting.module_inspector.DEFAULT_INSPECT_DEBUG", True)
+    mocker.patch("torch_tweak.torch.inspecting.module_inspector.DEFAULT_INSPECT_DEBUG", True)
 
     inspector = ModuleInspector()
     inspector.inspect(simple_model)
@@ -432,17 +435,17 @@ def test_inspect_module_with_errors():
         model(torch.randn(1, 10))
 
 
-def test_inspect_module_with_cuda():
-    """Test inspecting a module on CUDA if available."""
-    if not torch.cuda.is_available():
-        pytest.skip("CUDA not available")
+def test_inspect_module_with_xpu():
+    """Test inspecting a module on XPU if available."""
+    if not torch.xpu.is_available():
+        pytest.skip("XPU not available")
 
-    model = nn.Linear(10, 20).cuda()
+    model = nn.Linear(10, 20).xpu()
     inspector = ModuleInspector()
     inspector.inspect(model)
 
-    # Execute on CUDA
-    input_tensor = torch.randn(1, 10).cuda()
+    # Execute on XPU
+    input_tensor = torch.randn(1, 10).xpu()
     model(input_tensor)
 
     # Check execution tracking

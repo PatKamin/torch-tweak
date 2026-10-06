@@ -1,13 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Tests for correctness checking functionality."""
 
 import numpy as np
 import pytest
 import torch
 
-from aitune.torch.module.tensor_spec import TensorSpec
-from aitune.torch.task.correctness import (
+from torch_tweak.torch.module.tensor_spec import TensorSpec
+from torch_tweak.torch.task.correctness import (
     CorrectnessTensorShapeError,
     check_output_correctness,
     check_output_tensor_shapes,

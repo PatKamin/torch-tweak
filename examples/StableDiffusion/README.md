@@ -1,85 +1,89 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+NOTE: This file has been modified by Intel Corporation.
 -->
 
-# Flux Pipeline Tuning with NVIDIA AITune
+# Stable Diffusion tuning with Torch Tweak
 
-This example demonstrates how to use NVIDIA AITune to tune the Stable Diffusion text-to-image model from Hugging Face's diffusers library.
+This example shows how to tune a Hugging Face **Stable Diffusion** pipeline with Torch Tweak.
+Selected `nn.Module` blocks are wrapped, and a strategy picks backends per module and per input graph.
+
+**Backends:** OpenVINO, Torch Inductor (`torch.compile`), Torch Eager - see `stable_diffusion/tuning_strategy.py`.
+
+**Default model:** `stable-diffusion-v1-5/stable-diffusion-v1-5` (fits ~12 GB VRAM; larger checkpoints such as SD 3 need much more memory).
 
 ## Environment Setup
 
-You can use either of the following options to set up the environment:
-
-### Option 1 - virtual environment managed by you
-
-Activate your virtual environment and install the dependencies:
+From this example directory (`examples/StableDiffusion`). PyTorch comes from the **`xpu-stable`** dependency group (Intel XPU wheels). Load oneAPI before `uv sync` / `uv run`.
 
 ```bash
-pip install --extra-index-url https://pypi.nvidia.com .
-```
-
-### Option 2 - virtual environment managed by `uv`
-
-Install dependencies:
-
-```bash
+for _d in "${ONEAPI_ROOT:+$ONEAPI_ROOT}" "$HOME/intel/oneapi" /opt/intel/oneapi /usr/local/intel/oneapi; do
+  [ -n "$_d" ] && [ -f "$_d/setvars.sh" ] && . "$_d/setvars.sh" && break
+done
+cd examples/StableDiffusion
 uv sync
+uv run benchmark-hybrid --help
 ```
+
+Nightly PyTorch:
+```bash
+export UV_PROJECT_ENVIRONMENT=.venv-nightly
+uv sync --no-default-groups --group xpu-nightly
+```
+
+In case you are a developer making change in Torch Tweak sources, then reinstall it:
+```bash
+uv sync --no-default-groups --group xpu-nightly --reinstall-package torch_tweak
+```
+
 
 ## Usage
 
 ### Tuning the model
 
-To tune the Stable Diffusion model, run:
-
 ```bash
-tune --model-name stabilityai/stable-diffusion-3-medium-diffusers --prompt "A futuristic cityscape with neon lights"
+cd examples/StableDiffusion
+uv run tune --prompt "A futuristic cityscape with neon lights"
 ```
 
-You can customize the following parameters:
-- `--model-name`: HuggingFace model name or path (default: "stabilityai/stable-diffusion-3-medium-diffusers")
+Common CLI options (shared by `tune` and `inference`):
+
+- `--model-name`: Hugging Face model id (default: SD 1.5)
 - `--prompt`: Text prompt for image generation
-- `--negative-prompt`: Negative text prompt (default: "low quality, blurry")
-- `--height`: Height of the generated image (default: 512)
-- `--width`: Width of the generated image (default: 512)
-- `--steps`: Number of inference steps (default: 50)
+- `--sizes`: Space-separated `width,height` pairs (default: `512,512`)
+- `--steps`: Inference steps (default: 50)
+- `--tuned-model-path`: Path to save or load the tuned checkpoint (default: `stable_diffusion.tt`)
+
+### Hybrid vs single-backend benchmark
+
+Compare **HighestThroughput** (OpenVINO + Inductor + Eager per module) against single-backend baselines:
+
+```bash
+uv run benchmark-hybrid \
+  --model-name stable-diffusion-v1-5/stable-diffusion-v1-5 \
+  --sizes "512,512" \
+  --steps 8 \
+  --scenarios hybrid,openvino,inductor,eager \
+  --output-json benchmark_sd_hybrid_results.json
+```
+
+Use `--scenarios hybrid` for a quicker run. Results include per-module backend choices and seconds per pipeline run.
 
 ### Generating images with the tuned model
 
 After tuning, generate images with:
 
 ```bash
-inference --prompt "A beautiful landscape with mountains and a lake" --output-dir output
+uv run inference --prompt "A beautiful landscape with mountains and a lake" --output-dir output
 ```
 
 The generated image will be saved in the specified output directory.
 
-
-### AI Dynamo Stable Diffusion Deployment
-
-To run Stable Diffusion as AI Dynamo service, we have prepared a few additional configs and scripts.
-
-Code starts in `stable_diffusion/dynamo/backend.py`. Docker and Docker Compose are used to make setup simple.
-
-First, start all services by running `docker compose --profile all up --detach`. This will build and start all required services.
-
-After successful tuning and services start run below command to test the service.
-
-```sh
-python -m stable_diffusion.dynamo.client --help # to see the prompts
-python -m stable_diffusion.dynamo.client --num-requests 1
-python -m stable_diffusion.dynamo.client --num-requests 2
-python -m stable_diffusion.dynamo.client --num-requests 4
-python -m stable_diffusion.dynamo.client --num-requests 8
-python -m stable_diffusion.dynamo.client --num-requests 100
-```
-
-Finally, to shut it down use `docker compose --profile all down`.
-
 #### Dynamic batching
 
-The service uses dynamic batching — requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.
+The service uses dynamic batching - requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.
 
 ## Model Details
 

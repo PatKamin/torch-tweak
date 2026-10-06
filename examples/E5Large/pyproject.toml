@@ -1,52 +1,63 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 [project]
-name = "nvidia-ai-tune-e5-large-v2-embedding-example"
-version = "0.1.0"
-description = "NVIDIA AI Tune E5 Large V2 Embedding Example"
+name = "torch-tweak-e5-large-v2-embedding-example"
+dynamic = ["version"]
+description = "Torch Tweak E5 Large V2 Embedding Example"
 readme = "README.md"
-license-files = ["LICENSE"]
-requires-python = ">=3.10, <3.13"
+license = "Apache-2.0"
+license-files = ["LICENSE", "third-party-programs.txt"]
+requires-python = ">=3.10"
 
 dependencies = [
-    "aitune",
-    "sentence_transformers",
-    "huggingface_hub",
+    "torch-tweak[xpu]",
+    "sentence_transformers>=6,<7",
 ]
 
-[project.optional-dependencies]
-dynamo = [
-    "aitune-examples-common",
-    "ai-dynamo==0.6.0",
-    "uvicorn",
-    "aiohttp",
-    "aiofiles>=24.1.0",
-    "python-multipart",
-    "pyyaml",
-]
+[tool.uv]
+index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
-aitune = { path  = "../../" }
-aitune-examples-common = { path = "../../examples/common" }
+torch_tweak = { path  = "../../" }
+torch = { index = "pytorch-xpu" }
+triton-xpu = { index = "pytorch-xpu" }
+torchao = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-xpu"
+url = "https://download.pytorch.org/whl/xpu"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [project.scripts]
 tune = "e5large.tune:main"
 inference = "e5large.inference:main"
 
 [build-system]
-requires = ["setuptools>=65.3.0,<82", "setuptools_scm>=2.0.0,<3", "wheel>=0.37.1"]
+requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=10.2.0", "wheel>=0.47.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools_scm]
+root = "../.."
+local_scheme = "no-local-version"
+fallback_version = "0.4.0"
 
 [tool.setuptools.packages.find]
 namespaces = false
 include = ["e5large"]
 
 [tool.setuptools.package-data]
-e5large = ["e5large/*"]
+e5large = ["**/*"]
 
 [tool.ruff]
 preview = true
@@ -65,7 +76,3 @@ exclude = []
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.aitune]
-docker_image = "nvcr.io/nvidia/pytorch:25.10-py3"
-dependencies = ["torchao~=0.15.0"]

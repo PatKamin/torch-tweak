@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for FirstWinsStrategy."""
 
 from unittest.mock import MagicMock
@@ -8,13 +10,13 @@ from unittest.mock import MagicMock
 import pytest
 import torch.nn as nn
 
-from aitune.torch import Module, tune
-from aitune.torch.backend import Backend
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.wrapper_module import ModuleState
-from aitune.torch.tune_strategy.first_wins_strategy import FirstWinsStrategy
 from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch import Module, tune
+from torch_tweak.torch.backend import Backend
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.wrapper_module import ModuleState
+from torch_tweak.torch.tune_strategy.first_wins_strategy import FirstWinsStrategy
 
 
 @pytest.fixture

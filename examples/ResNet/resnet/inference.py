@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Inference script for ResNet models."""
 
 from logging import basicConfig, getLogger
@@ -7,9 +10,9 @@ from logging import basicConfig, getLogger
 import torch
 from PIL import Image
 
-from aitune.torch import load
 from resnet.cmd_args import get_parser
 from resnet.model import get_model, get_transform
+from torch_tweak.torch import load
 
 logger = getLogger(__name__)
 
@@ -39,7 +42,7 @@ def do_inference(model_name, tuned_model_path, image_path, expected_class_id=Non
     tuned_model = load(model, tuned_model_path)
 
     img = Image.open(image_path)
-    x = transform(img).to("cuda")
+    x = transform(img).to("xpu")
     batch = x.unsqueeze(0)  # during tuning model sees batches, we have to unsqueeze to see single sample
     out = tuned_model(batch)
     actual_probs = torch.nn.functional.softmax(out[0], dim=0)

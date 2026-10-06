@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Tune ResNet model."""
 
 import logging
@@ -8,18 +11,25 @@ from logging import basicConfig
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-from aitune.torch import Module, OneBackendStrategy
-from aitune.torch import tune as aitune
-from aitune.torch.backend import TorchEagerBackend, TorchInductorBackend, TorchInductorBackendConfig
 from llm.cmd_args import get_tune_parser
+from torch_tweak.torch import Module, OneBackendStrategy
+from torch_tweak.torch import tune as torch_tweak
+from torch_tweak.torch.backend import TorchEagerBackend, TorchInductorBackend, TorchInductorBackendConfig
 
 
 def get_model_and_tokenizer(model_id="microsoft/Phi-3-mini-4k-instruct"):
     """Get the model and tokenizer."""
-    model = AutoModelForCausalLM.from_pretrained(model_id, dtype="auto", trust_remote_code=False)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, padding_side="left")
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        dtype="auto",
+        trust_remote_code=False,
+        revision="f39ac1d28e925b323eae81227eaba4464caced4e",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_id, padding_side="left", revision="f39ac1d28e925b323eae81227eaba4464caced4e"
+    )
     tokenizer.pad_token = tokenizer.eos_token  # some models does not have it set
-    return model.to("cuda"), tokenizer
+    return model.to("xpu"), tokenizer
 
 
 def print_conversation(output, title="CONVERSATION OUTPUT"):
@@ -84,11 +94,11 @@ def tune_model(model, tokenizer, cache="static"):
 
     def pipe(messages):
         inputs = tokenizer(messages, return_tensors="pt", padding=True)
-        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+        inputs = {k: v.to("xpu") for k, v in inputs.items()}
         with torch.no_grad():
             return model.generate(**inputs, **generate_args)
 
-    aitune(pipe, ["2+2?", "How big is the universe?"], batch_sizes=[1, 2], device="cuda", dry_run=False)
+    torch_tweak(pipe, ["2+2?", "How big is the universe?"], batch_sizes=[1, 2], device="xpu", dry_run=False)
     return model
 
 

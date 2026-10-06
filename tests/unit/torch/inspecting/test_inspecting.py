@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.inspecting import inspect
-from aitune.torch.inspecting.module_info import InspectedModulesInfo, ModuleInfo
+from torch_tweak.torch.inspecting import inspect
+from torch_tweak.torch.inspecting.module_info import InspectedModulesInfo, ModuleInfo
 
 TEST_NUMBER_OF_ITERATIONS = 10
 
@@ -128,7 +131,7 @@ def test_inspect_nested_model_with_inference_function(nested_model, sample_datas
 
 def test_inspect_with_dataloader(simple_model):
     """Test inspecting with a DataLoader."""
-    from aitune.torch.dataloader import DataLoaderFactory
+    from torch_tweak.torch.dataloader import DataLoaderFactory
 
     # Create a simple dataloader
     dataset = torch.randn(10, 10)
@@ -171,16 +174,16 @@ def test_inspect_with_complex_output(sample_dataset):
     assert module_info.output_types[0]["type"] == "dict"
 
 
-def test_inspect_with_cuda(simple_model, sample_dataset):
-    """Test inspecting a model on CUDA if available."""
-    if not torch.cuda.is_available():
-        pytest.skip("CUDA not available")
+def test_inspect_with_xpu(simple_model, sample_dataset):
+    """Test inspecting a model on XPU if available."""
+    if not torch.xpu.is_available():
+        pytest.skip("XPU not available")
 
-    # Move model and data to CUDA
-    model = simple_model.cuda()
-    dataset = sample_dataset.cuda()
+    # Move model and data to XPU
+    model = simple_model.xpu()
+    dataset = sample_dataset.xpu()
 
-    # When inspecting on CUDA
+    # When inspecting on XPU
     modules_info = inspect(model, dataset)
 
     # Then verify the results

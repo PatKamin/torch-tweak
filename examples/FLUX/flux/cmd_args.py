@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Common command line arguments for Flux."""
 
 import argparse
@@ -46,7 +49,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Tune Flux model")
     parser.add_argument(
-        "--model-name", type=str, default="black-forest-labs/FLUX.1-dev", help="HuggingFace model name or path"
+        "--model-name", type=str, default="black-forest-labs/FLUX.2-klein-4B", help="HuggingFace model name or path"
     )
     parser.add_argument(
         "--prompt",
@@ -87,7 +90,7 @@ def parse_args():
     parser.add_argument(
         "--tuned-model-path",
         type=str,
-        default="flux-dev.ait",
+        default="flux-dev.tt",
         help="Path to save the tuned model",
     )
 

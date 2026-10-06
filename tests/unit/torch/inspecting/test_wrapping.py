@@ -1,18 +1,21 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.backend import TensorRTBackend, TorchInductorBackend
-from aitune.torch.inspecting.module_info import ModuleInfo
-from aitune.torch.inspecting.module_inspector import DictOfModulesInfo, ListOfModulesInfo
-from aitune.torch.inspecting.wrapping import wrap
-from aitune.torch.module.sample_metadata import SampleMetadata
-from aitune.torch.module.wrapper_module import Module
-from aitune.torch.tune_strategy import FirstWinsStrategy, OneBackendStrategy
 from tests.toy_models import ToyTorchModel
+from torch_tweak.torch.backend import OpenVINOBackend, TorchEagerBackend, TorchInductorBackend
+from torch_tweak.torch.inspecting.module_info import ModuleInfo
+from torch_tweak.torch.inspecting.module_inspector import DictOfModulesInfo, ListOfModulesInfo
+from torch_tweak.torch.inspecting.wrapping import wrap
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.wrapper_module import Module
+from torch_tweak.torch.tune_strategy import FirstWinsStrategy, OneBackendStrategy
 
 
 @pytest.fixture
@@ -99,7 +102,7 @@ def test_wrap_multiple_modules(nested_model):
 
 def test_wrap_with_strategy(simple_model):
     """Test wrapping with a strategy."""
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TorchEagerBackend()])
 
     # When wrapping with a strategy
     wrapped_model = wrap(
@@ -120,7 +123,7 @@ def test_wrap_with_strategy(simple_model):
 def test_wrap_with_strategies_list(simple_model):
     """Test wrapping with a strategy."""
     strategies = [
-        FirstWinsStrategy(backends=[TensorRTBackend(), TorchInductorBackend()]),
+        FirstWinsStrategy(backends=[OpenVINOBackend(), TorchInductorBackend()]),
         OneBackendStrategy(backend=TorchInductorBackend()),
     ]
 
@@ -147,7 +150,7 @@ def test_wrap_with_strategies_map(simple_model):
     sample_metadata2 = SampleMetadata.from_inputs(args=samples[0], kwargs={})
 
     strategies = {
-        sample_metadata1: FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()]),
+        sample_metadata1: FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()]),
         sample_metadata2: OneBackendStrategy(backend=TorchInductorBackend()),
     }
 
@@ -214,7 +217,7 @@ def test_wrap_custom_object():
     custom_obj = CustomObject()
     parent = ModuleInfo(module=custom_obj)
 
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent)]
 
@@ -247,7 +250,7 @@ def test_wrap_custom_object_nested():
     custom_obj = CustomObject()
     parent = ModuleInfo(module=custom_obj)
 
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     module_info = [ModuleInfo(name="layer", module=custom_obj.layer, parent=parent)]
 
@@ -274,7 +277,7 @@ def test_wrap_custom_object_multiple_modules():
     custom_obj = CustomObject()
     parent = ModuleInfo(module=custom_obj)
 
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     module_info = [
         ModuleInfo(name="model1", module=custom_obj.model1, parent=parent),
@@ -302,7 +305,7 @@ def test_wrap_custom_object_without_modules():
 
     custom_obj = CustomObject()
 
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     # When wrapping custom object without modules
     wrapped_obj = wrap(custom_obj, [], strategy=strategy)
@@ -328,7 +331,7 @@ def test_wrap_custom_object_with_attributes():
     custom_obj = CustomObject()
     parent = ModuleInfo(module=custom_obj)
 
-    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), TensorRTBackend()])
+    strategy = FirstWinsStrategy(backends=[TorchInductorBackend(), OpenVINOBackend()])
 
     module_info = [ModuleInfo(name="model", module=custom_obj.model, parent=parent)]
 

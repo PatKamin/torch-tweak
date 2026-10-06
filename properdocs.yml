@@ -1,0 +1,131 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
+site_name: Torch Tweak
+theme:
+    name: material
+    custom_dir: docs/overrides
+    palette:
+        primary: black
+    features:
+        - navigation.top
+        - navigation.tabs
+        - navigation.tabs.sticky
+        - navigation.expand
+        - navigation.sections
+extra_css:
+    - assets/styles.css
+repo_url: https://github.com/intel/torch-tweak
+repo_name: GitHub Repository
+plugins:
+    - autorefs
+    - htmlproofer:
+        ignore_urls:
+            - '**/tuning/backend/#torch_tweak.torch.backend*'
+            - '**/backends/*/#torch_tweak.torch.backend*'
+            - 'https://huggingface.co/*'
+            - 'https://www.biorxiv.org/*'
+    - mike
+    - mkdocstrings:
+        enable_inventory: true
+        handlers:
+            python:
+                inventories:
+                    - https://docs.python.org/3/objects.inv
+                options:
+                    docstring_style: google
+                    show_root_heading: true
+                    heading_level: 2
+                    line_length: 120
+                    docstring_section_style: list
+                    merge_init_into_class: true
+                    separate_signature: true
+                    inherited_members: true
+                    signature_crossrefs: true
+    - search
+    - redirects:
+        redirect_maps:
+            index.md: learn/overview.md
+
+watch:
+    - torch_tweak
+    - docs
+    - examples
+    - properdocs.yml
+    - LICENSE
+    - ChangeLog.md
+    # TODO(SPJT-453): temporary.
+    # - CONTRIBUTING.md
+hooks:
+    - scripts/stage_docs.py
+    - scripts/rewrite_links_to_repo.py
+extra:
+    version:
+        provider: mike
+    view_uri_template: blob/{ref}/{path}
+markdown_extensions:
+    - admonition
+    - pymdownx.details
+    -   pymdownx.highlight:
+            anchor_linenums: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
+nav:
+    -   Learn:
+            -   Overview: learn/overview.md
+            -   Install: learn/install.md
+            -   Quick Start: learn/quick_start.md
+            -   Core Functionalities: learn/core_functionalities.md
+            -   Backends: learn/backends.md
+            -   Observability: learn/observability.md
+    -   Guides:
+            - Tuning: guides/tuning.md
+            - Inspect: guides/inspect.md
+            - Backends:
+                - OpenVINO Backend: guides/backends/openvino_backend.md
+                - TorchAO Backend: guides/backends/torchao_backend.md
+                - Torch Inductor Backend: guides/backends/torch_inductor_backend.md
+                - Torch Eager Backend: guides/backends/torch_eager_backend.md
+            - Tune Strategies: guides/tune_strategies/tune_strategies.md
+            - Deployment: guides/deployment/deployment.md
+            - Advanced:
+                - Tuning Workflow: guides/advanced/tuning_workflow.md
+                - Execution Graphs: guides/advanced/execution_graphs.md
+
+    -   Examples:
+            - Overview: examples/examples.md
+            - E5Large: examples/E5Large/README.md
+            - ESM2: examples/ESM2/README.md
+            - FLUX: examples/FLUX/README.md
+            - LLM: examples/LLM/README.md
+            - Minimal: examples/Minimal/README.md
+            - ParakeetCTC: examples/ParakeetCTC/README.md
+            - ParakeetRNNT: examples/ParakeetRNNT/README.md
+            - ResNet: examples/ResNet/README.md
+            - StableDiffusion: examples/StableDiffusion/README.md
+    -   API:
+            -   Tuning API:
+                    -   Module: api/tuning/module.md
+                    -   Tuning: api/tuning/tuning.md
+                    -   Config: api/tuning/config.md
+                    -   Backend: api/tuning/backend.md
+                    -   Inspect: api/tuning/inspect.md
+            -   Backends API:
+                    -   OpenVINO Backend: api/backends/openvino_backend.md
+                    -   TorchAO Backend: api/backends/torchao_backend.md
+                    -   Torch Inductor Backend: api/backends/torch_inductor_backend.md
+                    -   Torch Eager Backend: api/backends/torch_eager_backend.md
+            -   Tuning Strategies API:
+                    -   FirstWinsStrategy: api/tune_strategies/first_wins_strategy.md
+                    -   OneBackendStrategy: api/tune_strategies/one_backend_strategy.md
+                    -   HighestThroughputStrategy: api/tune_strategies/highest_throughput_strategy.md
+
+    -   Resources:
+            -   Changelog: ChangeLog.md
+            -   Known Issues: known_issues.md
+            # TODO(SPJT-453): temporary.
+            # -   Contributing: CONTRIBUTING.md
+            -   License: LICENSE.md

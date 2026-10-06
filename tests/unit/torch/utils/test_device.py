@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Test for device utilities."""
 
 import pytest
 import torch
 
-from aitune.torch.utils.device import get_device
+from torch_tweak.torch.utils.device import get_device
 
 
 def test_get_device_cpu_string():
@@ -25,39 +28,39 @@ def test_get_device_cpu_torch_device():
     assert result.index is None
 
 
-def test_get_device_cuda_string_no_index():
-    """Test get_device with 'cuda' string (should default to cuda:0)."""
-    result = get_device("cuda")
+def test_get_device_xpu_string_no_index():
+    """Test get_device with 'xpu' string (should default to xpu:0)."""
+    result = get_device("xpu")
     assert isinstance(result, torch.device)
-    assert result.type == "cuda"
+    assert result.type == "xpu"
     assert result.index == 0
 
 
-def test_get_device_cuda_string_with_index():
-    """Test get_device with 'cuda:N' string."""
+def test_get_device_xpu_string_with_index():
+    """Test get_device with 'xpu:N' string."""
     for device_id in [0, 1, 2, 10]:
-        result = get_device(f"cuda:{device_id}")
+        result = get_device(f"xpu:{device_id}")
         assert isinstance(result, torch.device)
-        assert result.type == "cuda"
+        assert result.type == "xpu"
         assert result.index == device_id
 
 
-def test_get_device_cuda_torch_device_no_index():
-    """Test get_device with cuda torch.device without index."""
-    cuda_device = torch.device("cuda")
-    result = get_device(cuda_device)
+def test_get_device_xpu_torch_device_no_index():
+    """Test get_device with xpu torch.device without index."""
+    xpu_device = torch.device("xpu")
+    result = get_device(xpu_device)
     assert isinstance(result, torch.device)
-    assert result.type == "cuda"
+    assert result.type == "xpu"
     assert result.index == 0
 
 
-def test_get_device_cuda_torch_device_with_index():
-    """Test get_device with cuda torch.device with index."""
+def test_get_device_xpu_torch_device_with_index():
+    """Test get_device with xpu torch.device with index."""
     for device_id in [0, 1, 2, 5]:
-        cuda_device = torch.device(f"cuda:{device_id}")
-        result = get_device(cuda_device)
+        xpu_device = torch.device(f"xpu:{device_id}")
+        result = get_device(xpu_device)
         assert isinstance(result, torch.device)
-        assert result.type == "cuda"
+        assert result.type == "xpu"
         assert result.index == device_id
 
 
@@ -66,18 +69,20 @@ def test_get_device_invalid_string_inputs():
     invalid_inputs = [
         "",
         "gpu",
-        "cuda:",
-        "cuda:a",
-        "cuda:-1",
-        "cuda:1.5",
-        "cuda: 0",
-        " cuda:0",
-        "cuda:0 ",
-        "CUDA:0",
+        "cuda",
+        "cuda:0",
+        "xpu:",
+        "xpu:a",
+        "xpu:-1",
+        "xpu:1.5",
+        "xpu: 0",
+        " xpu:0",
+        "xpu:0 ",
+        "XPU:0",
         "mps",
         "tpu",
         "invalid",
-        "cuda:0:0",
+        "xpu:0:0",
     ]
 
     for invalid_input in invalid_inputs:
@@ -119,12 +124,12 @@ def test_get_device_return_type_consistency():
     """Test that get_device always returns torch.device objects."""
     test_cases = [
         "cpu",
-        "cuda",
-        "cuda:0",
-        "cuda:1",
+        "xpu",
+        "xpu:0",
+        "xpu:1",
         torch.device("cpu"),
-        torch.device("cuda:0"),
-        torch.device("cuda:1"),
+        torch.device("xpu:0"),
+        torch.device("xpu:1"),
     ]
 
     for test_case in test_cases:
@@ -137,9 +142,9 @@ def test_get_device_large_device_indices():
     large_indices = [99, 100, 127]
 
     for index in large_indices:
-        result = get_device(f"cuda:{index}")
+        result = get_device(f"xpu:{index}")
         assert isinstance(result, torch.device)
-        assert result.type == "cuda"
+        assert result.type == "xpu"
         assert result.index == index
 
 
@@ -149,22 +154,22 @@ def test_get_device_device_indices_from_out_of_range():
 
     for index in large_indices:
         with pytest.raises(ValueError, match=f"Invalid device index: {index}. Expected 0-127"):
-            get_device(f"cuda:{index}")
+            get_device(f"xpu:{index}")
 
 
 def test_get_device_edge_case_zero_index():
     """Test get_device specifically with zero index."""
     # Test string input
-    result_str = get_device("cuda:0")
-    assert result_str.type == "cuda"
+    result_str = get_device("xpu:0")
+    assert result_str.type == "xpu"
     assert result_str.index == 0
 
     # Test torch.device input
-    result_device = get_device(torch.device("cuda:0"))
-    assert result_device.type == "cuda"
+    result_device = get_device(torch.device("xpu:0"))
+    assert result_device.type == "xpu"
     assert result_device.index == 0
 
-    # Test that "cuda" becomes "cuda:0"
-    result_default = get_device("cuda")
-    assert result_default.type == "cuda"
+    # Test that "xpu" becomes "xpu:0"
+    result_default = get_device("xpu")
+    assert result_default.type == "xpu"
     assert result_default.index == 0

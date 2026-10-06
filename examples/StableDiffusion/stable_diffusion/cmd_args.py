@@ -1,8 +1,13 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Common command line arguments for Stable Diffusion."""
 
 import argparse
+
+DEFAULT_MODEL = "stable-diffusion-v1-5/stable-diffusion-v1-5"
 
 
 def parse_sizes(sizes_str: str) -> list[tuple[int, int]]:
@@ -48,7 +53,7 @@ def parse_args():
     parser.add_argument(
         "--model-name",
         type=str,
-        default="stabilityai/stable-diffusion-3-medium-diffusers",
+        default=DEFAULT_MODEL,
         help="HuggingFace model name or path",
     )
     parser.add_argument(
@@ -58,16 +63,10 @@ def parse_args():
         help="Text prompt for image generation",
     )
     parser.add_argument(
-        "--negative-prompt",
-        type=str,
-        default="low quality, blurry",
-        help="Negative text prompt",
-    )
-    parser.add_argument(
         "--sizes",
         type=parse_sizes,
-        default=[(512, 512), (1024, 1024)],
-        help="Image dimensions as space-separated width,height pairs (e.g., '128,128 256,256' or '512,512')",
+        default=[(512, 512)],
+        help="Image dimensions as space-separated width,height pairs (e.g., '512,512' or '512,512 768,768')",
     )
     parser.add_argument(
         "--steps",
@@ -78,8 +77,14 @@ def parse_args():
     parser.add_argument(
         "--tuned-model-path",
         type=str,
-        default="stable_diffusion.ait",
+        default="stable_diffusion.tt",
         help="Path to save the tuned model",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="output",
+        help="Directory for generated images (inference only; overridden by TORCH_TWEAK_OUTPUT_DIR if set)",
     )
     args = parser.parse_args()
     return args

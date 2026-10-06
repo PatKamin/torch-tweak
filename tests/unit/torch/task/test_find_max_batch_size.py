@@ -1,17 +1,19 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 import pytest
 
-from aitune.torch.task.find_max_batch_size import find_max_batch_size, get_throughput_per_batch_size
-from aitune.torch.task.profiling import (
+from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.task.find_max_batch_size import find_max_batch_size, get_throughput_per_batch_size
+from torch_tweak.torch.task.profiling import (
     AllSamplesProfilingStopStrategy,
     ModelExecutionTimeMeasuringStrategy,
     NumStepsMeasuringStopStrategy,
     ProfilingConfig,
 )
-from aitune.torch.task.profiling.events import ProfilingResultEvent
-from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.task.profiling.events import ProfilingResultEvent
 
 
 @pytest.fixture

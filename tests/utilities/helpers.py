@@ -1,30 +1,54 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Helper functions and classes for testing."""
 
 import pytest
+import torch
 
-from aitune.torch.utils.cuda import is_available as is_cuda_available
+from torch_tweak.torch.module.sample_metadata import CHECKPOINTABLE_VALUE_TYPES
+from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 
-requires_cuda = pytest.mark.skipif(not is_cuda_available(), reason="CUDA is not available")
+requires_xpu = pytest.mark.skipif(not is_xpu_available(), reason="XPU is not available")
 
 
-class TestSink:
-    """Sink for capturing output from PatchedModule.print_hierarchy.
+def assert_only_primitives(value):
+    """Assert value is built exclusively from types that need no custom unpickling.
 
-    This class provides a simple interface for capturing text output
-    that can be used to test print statements and other text-based
-    output in tests.
+    Types are matched exactly rather than with isinstance, so that a subclass which
+    would need its own class at load time (a namedtuple, or a dict subclass such as the
+    transformers ModelOutput family) fails here just as it does in production code.
+
+    Args:
+        value: Serialized payload to inspect recursively.
     """
+    if type(value) is dict:
+        for key, item in value.items():
+            assert_only_primitives(key)
+            assert_only_primitives(item)
+    elif type(value) in (list, tuple):
+        for item in value:
+            assert_only_primitives(item)
+    else:
+        assert type(value) in CHECKPOINTABLE_VALUE_TYPES, f"unexpected {type(value).__name__} in serialized data"
 
-    def __init__(self):
-        """Initialize the TestSink with an empty output list."""
-        self.output = []
 
-    def write(self, text):
-        """Write text to the sink.
+def save_and_load_weights_only(payload, tmp_path, name="payload.pth"):
+    """Round trip payload through torch.save and a weights only torch.load.
 
-        Args:
-            text (str): The text to append to the output list.
-        """
-        self.output.append(text)
+    A weights only load accepts tensors and plain Python values only, so this raises
+    for any payload which needs an arbitrary class to be reconstructed.
+
+    Args:
+        payload: Serialized payload to round trip.
+        tmp_path: Directory to store the temporary checkpoint in.
+        name: File name to use inside tmp_path.
+
+    Returns:
+        The payload as loaded back by torch.
+    """
+    path = tmp_path / name
+    torch.save(payload, path)
+    return torch.load(path, weights_only=True)

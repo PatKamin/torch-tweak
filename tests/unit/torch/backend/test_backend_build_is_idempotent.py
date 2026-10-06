@@ -1,21 +1,22 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 from pathlib import Path
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.backend import (
+from torch_tweak.torch.backend import (
     TorchEagerBackend,
     TorchInductorBackend,
-    TorchTensorRTJitBackend,
 )
-from aitune.torch.backend.backend import Backend
-from aitune.torch.backend.torchao_backend import TorchAOBackend
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.sample_metadata import SampleMetadata
-from tests.utilities.helpers import requires_cuda
+from torch_tweak.torch.backend.backend import Backend
+from torch_tweak.torch.backend.torchao_backend import TorchAOBackend
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
 
 
 class Latch:
@@ -45,16 +46,13 @@ def build_backend(backend: Backend, torch_device: torch.device, tmp_path: Path):
     backend.build(model, graph_spec, [(args, kwargs)], device=torch_device, cache_dir=tmp_path)
 
 
-@requires_cuda
 @pytest.mark.parametrize(
     "backend_class",
     [
         TorchEagerBackend,
         TorchAOBackend,
         TorchInductorBackend,
-        TorchTensorRTJitBackend,
-        # TensorRTBackend, - not supported yet
-        # TorchTensorRTAotBackend,- not supported yet
+        # OpenVINOBackend, - not supported yet
     ],
 )
 def test_backend_build_is_idempotent(backend_class, torch_device, tmp_path):

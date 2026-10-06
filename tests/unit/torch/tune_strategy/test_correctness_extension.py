@@ -1,19 +1,21 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+# NOTE: This file has been modified by Intel Corporation.
 from pathlib import Path
 
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.backend.torch_eager import TorchEagerBackend
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.recording_module import Sample
-from aitune.torch.module.sample_metadata import SampleMetadata
-from aitune.torch.task.correctness import CorrectnessTensorShapeError, CorrectnessValueError
-from aitune.torch.tune_strategy import TuneStrategy
 from tests.toy_models.torch_models import ToyTorchModel
+from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.task.correctness import CorrectnessTensorShapeError, CorrectnessValueError
+from torch_tweak.torch.tune_strategy import TuneStrategy
 
 
 class TuneStrategyTestCorrectness(TuneStrategy):

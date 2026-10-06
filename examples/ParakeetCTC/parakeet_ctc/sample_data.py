@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Sample audio data for the Parakeet CTC example."""
 
 import logging
@@ -10,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_AUDIO_URL = "https://dldata-public.s3.us-east-2.amazonaws.com/2086-149220-0033.wav"
 SAMPLE_AUDIO_FILENAME = "2086-149220-0033.wav"
+SAMPLE_AUDIO_TIMEOUT = 30
 
 
 def ensure_sample_audio(target_dir: Path | None = None) -> Path:
@@ -29,6 +32,7 @@ def ensure_sample_audio(target_dir: Path | None = None) -> Path:
     if not target.exists():
         target.parent.mkdir(parents=True, exist_ok=True)
         logger.info("Downloading sample audio from %s ...", SAMPLE_AUDIO_URL)
-        urllib.request.urlretrieve(SAMPLE_AUDIO_URL, target)  # noqa: S310
+        with urllib.request.urlopen(SAMPLE_AUDIO_URL, timeout=SAMPLE_AUDIO_TIMEOUT) as response:  # nosec B310
+            target.write_bytes(response.read())
         logger.info("Saved to %s", target)
     return target

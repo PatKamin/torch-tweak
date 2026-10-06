@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 import pytest
 import torch
 import torch.nn as nn
 
-from aitune.torch.inspecting.module_info import ModuleInfo
+from torch_tweak.torch.inspecting.module_info import ModuleInfo
 
 
 @pytest.fixture

@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Common command line arguments."""
 
 import argparse
@@ -88,9 +91,9 @@ def get_benchmark_parser():
     parser.add_argument(
         "--scenario",
         type=str,
-        default="aot",
-        choices=["vanilla", "aot"],
-        help="Benchmark scenario to run",
+        default="tuned",
+        choices=["vanilla", "tuned"],
+        help="Benchmark scenario to run (vanilla: original model, tuned: Torch Tweak model)",
     )
     return parser
 

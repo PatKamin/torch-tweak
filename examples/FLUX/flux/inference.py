@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Inference script for Flux model."""
 
 import os
@@ -8,7 +10,7 @@ from pathlib import Path
 
 import torch
 
-import aitune.torch as ait
+import torch_tweak.torch as tt
 from flux.cmd_args import parse_args
 from flux.model import get_pipeline
 
@@ -60,7 +62,7 @@ def do_inference(
         logger.info("Generated image saved to: %s", image_path)
 
     logger.info("Loading tuned pipeline")
-    pipe = ait.load(pipe, tuned_model_path)
+    pipe = tt.load(pipe, tuned_model_path)
 
     logger.info("Generating images on tuned pipeline")
     for height, width in sizes:
@@ -82,7 +84,7 @@ def do_inference(
 
 def main():
     """Entry point for the script."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = parse_args()
     do_inference(
@@ -93,7 +95,7 @@ def main():
         guidance_scale=args.guidance_scale,
         max_sequence_length=args.max_sequence_length,
         tuned_model_path=args.tuned_model_path,
-        output_dir=os.environ.get("AITUNE_OUTPUT_DIR", "output"),
+        output_dir=os.environ.get("TORCH_TWEAK_OUTPUT_DIR", "output"),
     )
 
 

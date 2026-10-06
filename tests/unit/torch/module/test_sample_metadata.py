@@ -1,15 +1,19 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Unit tests for sample metadata."""
 
+import copy
 from dataclasses import dataclass
 
 import pytest
 import torch
 
-from aitune.global_context import BATCH_SIZE_KEY, global_context
-from aitune.torch.module.sample_metadata import SampleMetadata, batch_tensor
-from aitune.torch.module.tensor_spec import InfoLevel, TensorSpec
+from tests.utilities.helpers import assert_only_primitives, save_and_load_weights_only
+from torch_tweak.global_context import BATCH_SIZE_KEY, global_context
+from torch_tweak.torch.module.sample_metadata import SampleMetadata, batch_tensor
+from torch_tweak.torch.module.tensor_spec import InfoLevel, TensorSpec
 
 
 @pytest.fixture
@@ -103,6 +107,110 @@ def test_to_from_dict(simple_sample, strict):
     metadata = SampleMetadata.from_outputs(simple_sample, strict=strict)
     result = SampleMetadata.from_dict(metadata.to_dict())
     assert metadata == result
+
+
+@pytest.mark.parametrize("strict", [True, False])
+def test_to_dict_holds_only_primitives(simple_sample, strict):
+    args, kwargs = simple_sample
+    metadata = SampleMetadata.from_inputs(args, kwargs, strict=strict)
+    assert_only_primitives(metadata.to_dict())
+
+
+def test_to_dict_stays_structured(simple_sample):
+    """Guard against opaque blobs."""
+    args, kwargs = simple_sample
+    data = SampleMetadata.from_inputs(args, kwargs, strict=True).to_dict()
+
+    assert sorted(data) == ["llm_phase", "other_data", "strict", "tensor_data"]
+    assert data["tensor_data"] and data["other_data"]
+
+    for entry in data["tensor_data"]:
+        assert sorted(entry) == ["locator", "tensor_spec"]
+        assert entry["locator"]["type"] == "Locator"
+        assert entry["tensor_spec"]["type"] == "TensorSpec"
+
+    for entry in data["other_data"]:
+        assert sorted(entry) == ["locator", "name", "value"]
+        assert entry["locator"]["type"] == "Locator"
+
+
+@pytest.mark.parametrize("strict", [True, False])
+def test_survives_weights_only_load(simple_sample, strict, tmp_path):
+    """Serialized metadata must load without reconstructing arbitrary objects."""
+    args, kwargs = simple_sample
+    metadata = SampleMetadata.from_inputs(args, kwargs, strict=strict)
+
+    result = SampleMetadata.from_dict(save_and_load_weights_only(metadata.to_dict(), tmp_path))
+
+    assert result == metadata
+    assert [spec.dtype for spec in result.tensor_specs] == [spec.dtype for spec in metadata.tensor_specs]
+    assert [value for _, _, value in result.other_data] == [value for _, _, value in metadata.other_data]
+
+
+def test_to_from_dict_preserves_tensor_spec_details():
+    args = (torch.randn(2, 3).to(torch.float16),)
+    kwargs = {"t": torch.zeros(4, dtype=torch.int64)}
+
+    metadata = SampleMetadata.from_inputs(args, kwargs, strict=True)
+    result = SampleMetadata.from_dict(metadata.to_dict())
+
+    for expected, actual in zip(metadata.tensor_specs, result.tensor_specs, strict=True):
+        assert expected.name == actual.name
+        assert expected.shape == actual.shape
+        assert expected.min_shape == actual.min_shape
+        assert expected.max_shape == actual.max_shape
+        assert expected.dtype == actual.dtype
+
+    assert [(str(locator), name, value) for locator, name, value in result.other_data] == [
+        (str(locator), name, value) for locator, name, value in metadata.other_data
+    ]
+
+
+def test_to_dict_rejects_non_primitive_other_data():
+    class Custom:
+        pass
+
+    metadata = SampleMetadata.from_inputs(args=(Custom(),), kwargs={}, strict=True)
+    with pytest.raises(TypeError, match="'args_0' has unsupported type 'Custom'.*strict_mode"):
+        metadata.to_dict()
+
+
+def test_from_dict_rejects_non_primitive_other_data_value():
+    # from_dict applies the same primitive restriction as to_dict, but advises differently:
+    # nothing the caller configures can fix a checkpoint that is already malformed.
+    metadata = SampleMetadata.from_inputs(args=("hello",), kwargs={}, strict=True)
+    data = metadata.to_dict()
+
+    # Tamper with the deserialized payload - replace the primitive with a tensor.
+    data["other_data"][0]["value"] = torch.zeros(2)
+
+    with pytest.raises(TypeError, match="'args_0' has unsupported type 'Tensor'.*rebuild it by tuning"):
+        SampleMetadata.from_dict(data)
+
+
+def test_non_strict_mode_drops_non_primitive_data_before_serialization():
+    class Custom:
+        pass
+
+    metadata = SampleMetadata.from_inputs(args=(Custom(), torch.randn(2)), kwargs={}, strict=False)
+
+    # Non-strict mode never records non-tensor data, so to_dict has nothing to reject.
+    assert metadata.other_data == ()
+
+    data = metadata.to_dict()
+    assert data["other_data"] == []
+    assert [entry["tensor_spec"]["name"] for entry in data["tensor_data"]] == ["args_1"]
+    assert SampleMetadata.from_dict(data) == metadata
+
+
+def test_from_dict_does_not_mutate_input(simple_sample):
+    args, kwargs = simple_sample
+    data = SampleMetadata.from_inputs(args, kwargs, strict=True).to_dict()
+    before = copy.deepcopy(data)
+
+    SampleMetadata.from_dict(data)
+
+    assert data == before
 
 
 def test_make_batch():

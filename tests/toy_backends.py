@@ -1,16 +1,21 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Toy backends for unit tests."""
 
 import time
 from pathlib import Path
 from typing import Any
 
-from aitune.torch.backend.backend import Backend
+from torch_tweak.torch.backend.backend import Backend
 
 
 class SleepBackend(Backend):
     """Backend that simulate an inference using sleep()."""
+
+    # Inference calls the original module, so its weights must stay in place.
+    requires_original_module = True
 
     def __init__(self, sleep_time: float = 0.001):
         super().__init__()
@@ -39,9 +44,6 @@ class SleepBackend(Backend):
 
     def _deploy(self):
         pass
-
-    def is_jit(self) -> bool:
-        return True
 
     @property
     def name(self) -> str:

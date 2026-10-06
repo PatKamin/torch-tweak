@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Test for wrapper module."""
 
 import inspect
@@ -10,19 +12,20 @@ from unittest.mock import Mock, call
 import pytest
 import torch
 
-from aitune.torch.backend.torch_eager import TorchEagerBackend
-from aitune.torch.backend.torch_inductor_backend import TorchInductorBackend
-from aitune.torch.config import aitune_cache_dir
-from aitune.torch.config import config as global_config
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.sample_metadata import SampleMetadata
-from aitune.torch.module.tuned_module import TunedModule
-from aitune.torch.module.wrapper_module import Module, ModuleState
-from aitune.torch.module_registry import MODULE_REGISTRY
-from aitune.torch.tune_strategy import (
+from tests.toy_backends import SleepBackend
+from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
+from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
+from torch_tweak.torch.config import config as global_config
+from torch_tweak.torch.config import torch_tweak_cache_dir
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.tuned_module import TunedModule
+from torch_tweak.torch.module.wrapper_module import Module, ModuleState
+from torch_tweak.torch.module_registry import MODULE_REGISTRY
+from torch_tweak.torch.tune_strategy import (
     OneBackendStrategy,
 )
-from aitune.torch.tune_strategy.tune_strategy import DummyTuneStrategy
+from torch_tweak.torch.tune_strategy.tune_strategy import DummyTuneStrategy
 
 
 class Identity(torch.nn.Module):
@@ -143,7 +146,7 @@ def test_tune_dry_run(module, torch_device):
                 ((1,), {"a": 1}),
             ],
             torch_device,
-            aitune_cache_dir() / module._self_name / module.graph_specs[0].name,
+            torch_tweak_cache_dir() / module._self_name / module.graph_specs[0].name,
         ),
         call(
             module,
@@ -155,7 +158,7 @@ def test_tune_dry_run(module, torch_device):
             ),
             [((2,), {"b": 2})],
             torch_device,
-            aitune_cache_dir() / module._self_name / module.graph_specs[1].name,
+            torch_tweak_cache_dir() / module._self_name / module.graph_specs[1].name,
         ),
     ])
 
@@ -185,7 +188,7 @@ def test_tune(module, torch_device):
             ),
             [((1,), {"a": 1})],
             torch_device,
-            aitune_cache_dir() / module._self_name / module.graph_specs[0].name,
+            torch_tweak_cache_dir() / module._self_name / module.graph_specs[0].name,
         ),
         call(
             module,
@@ -197,7 +200,7 @@ def test_tune(module, torch_device):
             ),
             [((2,), {"b": 2})],
             torch_device,
-            aitune_cache_dir() / module._self_name / module.graph_specs[1].name,
+            torch_tweak_cache_dir() / module._self_name / module.graph_specs[1].name,
         ),
     ])
 
@@ -395,3 +398,18 @@ def test_forward_method_should_have_same_signature():
     model.tune(device=torch.device("cpu"), strategy=strategy)
     assert model.state == ModuleState.TUNED
     assert set(inspect.signature(original_model.forward).parameters.keys()) == expected_keys
+
+
+def test_sleep_backend_keeps_original_module_after_tune():
+    """Backends that run the original module must not have it offloaded to meta."""
+    model = Identity()
+    module = Module(model, TEST_MODULE_NAME)
+    sample = torch.randn(2, 5)
+    module(sample)
+
+    strategy = OneBackendStrategy(SleepBackend()).enable_find_max_batch_size(False)
+    module.tune(device=torch.device("cpu"), strategy=strategy)
+
+    assert module.state == ModuleState.TUNED
+    assert next(model.parameters()).device.type != "meta"
+    assert torch.equal(module(sample), sample)

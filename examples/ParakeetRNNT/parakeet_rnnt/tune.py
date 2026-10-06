@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Tune Nemo ASR with Parakeet-RNNT-0.6B model."""
 
 import os
@@ -9,16 +12,14 @@ from pathlib import Path
 import torch
 from nemo.collections.asr.parts.mixins.transcription import InternalTranscribeConfig, TranscribeConfig
 
-from aitune.torch import HighestThroughputStrategy, TuneStrategy, inspect, save, tune, wrap
-from aitune.torch.backend import (
-    TensorRTBackend,
-    TensorRTBackendConfig,
+from parakeet_rnnt.cmd_args import parse_args
+from parakeet_rnnt.model import get_model
+from torch_tweak.torch import HighestThroughputStrategy, TuneStrategy, inspect, save, tune, wrap
+from torch_tweak.torch.backend import (
     TorchEagerBackend,
     TorchInductorBackend,
     TorchInductorBackendConfig,
 )
-from parakeet_rnnt.cmd_args import parse_args
-from parakeet_rnnt.model import get_model
 
 logger = getLogger(__name__)
 
@@ -46,8 +47,6 @@ def tune_model(
 
     strategy = strategy or HighestThroughputStrategy(
         backends=[
-            TensorRTBackend(),
-            TensorRTBackend(TensorRTBackendConfig(use_dynamo=False)),
             TorchInductorBackend(TorchInductorBackendConfig(autocast_enabled=True, autocast_dtype=torch.float16)),
             TorchEagerBackend(),
         ]
@@ -57,18 +56,23 @@ def tune_model(
 
     def call_wrapper(*args, **kwargs):
         # Note: transcribe function overrides batch size to a micro batch size of 4
-        # this causes issues on aitune when detecting batch dimensions. Here we have to override this so that
+        # this causes issues on torch_tweak when detecting batch dimensions. Here we have to override this so that
         # bs is correct.
         batch_size = len(kwargs["audio"])
-        return pipeline.transcribe(
+        result = pipeline.transcribe(
             *args,
             **kwargs,
             override_config=TranscribeConfig(
                 batch_size=batch_size,
                 verbose=False,
-                _internal=InternalTranscribeConfig(device=torch.device("cuda")),
+                _internal=InternalTranscribeConfig(device=torch.device("xpu")),
             ),
         )
+        # NeMo's _transcribe_on_end calls self.train(training=True). PyTorch 2.13+xpu's
+        # oneDNN LSTM asserts !train, so we restore eval mode after every
+        # transcription so the model is in inference mode.
+        pipeline.eval()
+        return result
 
     input_data = [{"audio": str(audio_path)}]
     call_wrapper(audio=str(audio_path))
@@ -95,7 +99,7 @@ def tune_model(
 
 def main():
     """Main function."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = parse_args()
 

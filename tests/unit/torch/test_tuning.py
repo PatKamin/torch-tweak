@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Test for tune function."""
 
 import logging
@@ -10,11 +12,11 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
-from aitune.torch import tuning
-from aitune.torch.config import DEFAULT_DEVICE
-from aitune.torch.dataloader import DataLoaderFactory
-from aitune.torch.module_registry import MODULE_REGISTRY
-from aitune.torch.tuning import LOG_FORMAT, tune
+from torch_tweak.torch import tuning
+from torch_tweak.torch.config import DEFAULT_DEVICE
+from torch_tweak.torch.dataloader import DataLoaderFactory
+from torch_tweak.torch.module_registry import MODULE_REGISTRY
+from torch_tweak.torch.tuning import LOG_FORMAT, tune
 
 
 class DummyDataset(Dataset):
@@ -38,7 +40,7 @@ def test_tune(mocker, dry_run):
     max_batches = 2
 
     mocker.patch.dict(MODULE_REGISTRY.modules, {"test_module": mock_module}, clear=True)
-    mocker.patch("aitune.torch.tuning._describe_module")
+    mocker.patch("torch_tweak.torch.tuning._describe_module")
 
     # when
     tune(
@@ -72,7 +74,7 @@ def test_tune_with_cache_clear(mocker, clear_cache):
     max_batches = 2
 
     mocker.patch.dict(MODULE_REGISTRY.modules, {"test_module": mock_module}, clear=True)
-    mocker.patch("aitune.torch.tuning._describe_module")
+    mocker.patch("torch_tweak.torch.tuning._describe_module")
     spy_clear_cache = mocker.spy(tuning, "_clear_cache")
 
     # when
@@ -107,7 +109,7 @@ def test_tune_with_dataloader_factory(mocker):
     factory = DataLoaderFactory(dataset)
 
     mocker.patch.dict(MODULE_REGISTRY.modules, {"test_module": mock_module}, clear=True)
-    mocker.patch("aitune.torch.tuning._describe_module")
+    mocker.patch("torch_tweak.torch.tuning._describe_module")
 
     # when
     tune(mock_module, factory, batch_sizes=[2], disable_external_logging=False)
@@ -123,7 +125,7 @@ def test_tune_log_level(mocker):
     dataset = DummyDataset(size=1)  # Small dataset for quick test
 
     # Mock the enable_gpu_memory_logging function
-    mock_enable_gpu_memory_logging = mocker.patch("aitune.utils.logging.enable_gpu_memory_logging")
+    mock_enable_gpu_memory_logging = mocker.patch("torch_tweak.utils.logging.enable_gpu_memory_logging")
     spy_setup_logging = mocker.spy(tuning, "setup_logging")
 
     # Get the root logger to check its level

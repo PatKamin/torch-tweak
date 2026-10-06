@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Inference for ASR model."""
 
 import os
@@ -10,7 +12,7 @@ from pathlib import Path
 import torch
 from nemo.collections.asr.parts.mixins.transcription import InternalTranscribeConfig, TranscribeConfig
 
-from aitune.torch import load
+from torch_tweak.torch import load
 
 from .model import get_model
 from .tune import parse_args
@@ -34,7 +36,7 @@ def do_inference(
             override_config=TranscribeConfig(
                 batch_size=kwargs["batch_size"],
                 verbose=False,
-                _internal=InternalTranscribeConfig(device=torch.device("cuda")),
+                _internal=InternalTranscribeConfig(device=torch.device("xpu")),
             ),
             verbose=False,
         )
@@ -51,7 +53,7 @@ def do_inference(
 
 def main():
     """Main function."""
-    log_level = os.environ.get("AITUNE_LOG_LEVEL", "INFO")
+    log_level = os.environ.get("TORCH_TWEAK_LOG_LEVEL", "INFO")
     basicConfig(level=log_level, format="%(asctime)s.%(msecs)03d %(name)s %(message)s", datefmt="%H:%M:%S", force=True)
     args = parse_args()
 

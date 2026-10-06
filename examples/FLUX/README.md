@@ -1,11 +1,19 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
+NOTE: This file has been modified by Intel Corporation.
 -->
 
-# Flux Pipeline Tuning with NVIDIA AITune
+# Flux Pipeline Tuning with Torch Tweak
 
-This example demonstrates how to use NVIDIA AITune to tune the Flux text-to-image model from Hugging Face's diffusers library.
+This example demonstrates how to use Torch Tweak to tune the Flux text-to-image model from Hugging Face's diffusers library.
+
+## Model Details
+
+The Flux model is a text-to-image diffusion model that generates high-quality images from text descriptions. The model is trained on a large dataset of images and text, and can generate realistic images across various domains.
+
+For more information, visit the [Flux model page on HuggingFace](https://huggingface.co/black-forest-labs/FLUX.2-klein-4B).
 
 ## Environment Setup
 
@@ -16,7 +24,9 @@ You can use either of the following options to set up the environment:
 Activate your virtual environment and install the dependencies:
 
 ```bash
-pip install --extra-index-url https://pypi.nvidia.com .
+pip install --index-url https://download.pytorch.org/whl/xpu \
+        --extra-index-url https://pypi.org/simple \
+        .
 ```
 
 ### Option 2 - virtual environment managed by `uv`
@@ -34,11 +44,11 @@ uv sync
 To tune the Flux model, run:
 
 ```bash
-tune --model-name black-forest-labs/FLUX.1-dev --prompt "A futuristic cityscape with neon lights"
+tune --model-name black-forest-labs/FLUX.2-klein-4B --prompt "A futuristic cityscape with neon lights"
 ```
 
 You can customize the following parameters:
-- `--model-name`: HuggingFace model name or path (default: "black-forest-labs/FLUX.1-dev")
+- `--model-name`: HuggingFace model name or path (default: "black-forest-labs/FLUX.2-klein-4B")
 - `--prompt`: Text prompt for image generation
 - `--negative-prompt`: Negative text prompt (default: "low quality, blurry")
 - `--height`: Height of the generated image (default: 512)
@@ -55,35 +65,6 @@ inference --prompt "A beautiful landscape with mountains and a lake" --output-di
 
 The generated image will be saved in the specified output directory.
 
-### AI Dynamo FLUX Deployment
-
-To run FLUX as AI Dynamo service, we have prepared a few additional configs and scripts.
-
-The service is split into backend (`flux/dynamo/backend.py`) and frontend (`flux/dynamo/frontend.py`) components. Docker and Docker Compose are used to make setup simple.
-
-First, start all services by running `HF_TOKEN=hf.... docker compose --profile all up --detach`. This will build and start all required services. The token for the HuggingFace is required to download the model.
-
-After successful download, tuning and services start run below command to test the service.
-
-```sh
-python -m flux.dynamo.client --help # to see the prompts
-python -m flux.dynamo.client --num-requests 1
-python -m flux.dynamo.client --num-requests 2
-python -m flux.dynamo.client --num-requests 4
-python -m flux.dynamo.client --num-requests 8
-python -m flux.dynamo.client --num-requests 100
-```
-
-Finally, to shut it down use `docker compose --profile all down`.
-
 #### Dynamic batching
 
-The service uses dynamic batching — requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.
-
-
-## Model Details
-
-The Flux model is a text-to-image diffusion model that generates high-quality images from text descriptions. The model is trained on a large dataset of images and text, and can generate realistic images across various domains.
-
-For more information, visit the [Flux model page on HuggingFace](https://huggingface.co/black-forest-labs/FLUX.1-dev).
-
+The service uses dynamic batching - requests are grouped and processed together for efficiency. Currently, there is one frontend and one worker. To support multiple workers, move batching to a separate service that handles request grouping.

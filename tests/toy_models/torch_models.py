@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 """Toy model for unit tests."""
 
 import torch
 
-from aitune.torch.module.graph_spec import GraphSpec
-from aitune.torch.module.recording_module import Sample
-from aitune.torch.module.sample_metadata import SampleMetadata
+from torch_tweak.torch.module.graph_spec import GraphSpec
+from torch_tweak.torch.module.recording_module import Sample
+from torch_tweak.torch.module.sample_metadata import SampleMetadata
 
 INPUT_SIZE = 32  # must be multiple of 16 for torchao tests
 HIDDEN_SIZE = 16
@@ -138,9 +141,9 @@ class ToyPipeline:
     """
 
     def __init__(self):
-        self.linear1 = torch.nn.Linear(INPUT_SIZE, HIDDEN_SIZE).to("cuda")
-        self.linear2 = torch.nn.Linear(HIDDEN_SIZE, OUTPUT_SIZE).to("cuda")
-        self.preprocessing = lambda x: x.to("cuda")
+        self.linear1 = torch.nn.Linear(INPUT_SIZE, HIDDEN_SIZE).xpu()
+        self.linear2 = torch.nn.Linear(HIDDEN_SIZE, OUTPUT_SIZE).xpu()
+        self.preprocessing = lambda x: x.xpu()
         self.config = {"description": "this is a dummy configuration just to imitate a pipeline"}
 
     def __call__(self, x):

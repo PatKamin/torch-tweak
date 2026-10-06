@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Inference for ESM2 model."""
 
 import logging
@@ -8,7 +10,7 @@ import os
 import torch
 from transformers import AutoTokenizer
 
-import aitune.torch as ait
+import torch_tweak.torch as tt
 from esm2.tune import DEVICE, LOG_LEVEL, MODEL_NAME, SAMPLE_SEQUENCE, get_model
 
 logger = logging.getLogger(__name__)
@@ -22,10 +24,13 @@ def infer(model_path: str = "esm2_tuned"):
     with torch.no_grad():
         logger.info("Loading model...")
         model = get_model()
-        pipe = ait.load(model, model_path)
+        pipe = tt.load(model, model_path)
 
         logger.info("Preparing input data...")
-        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_NAME,
+            revision="08e4846e537177426273712802403f7ba8261b6c",
+        )
         input_data = tokenizer([sample_sequence], return_tensors="pt")
 
         input_data = {

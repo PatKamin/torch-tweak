@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# NOTE: This file has been modified by Intel Corporation.
 """Tests for Timer utilities."""
 
 import logging
@@ -7,7 +9,7 @@ import time
 
 import pytest
 
-from aitune.utils.timer import Timer, _format_duration
+from torch_tweak.utils.timer import Timer, _format_duration
 
 # Tests for _format_duration function
 

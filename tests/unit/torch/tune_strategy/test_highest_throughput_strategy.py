@@ -1,5 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+#
+# NOTE: This file has been modified by Intel Corporation.
 
 import time
 from typing import cast
@@ -7,23 +10,23 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from aitune.torch import Module
-from aitune.torch.backend import Backend
-from aitune.torch.backend.torch_eager import TorchEagerBackend
-from aitune.torch.backend.torch_inductor_backend import TorchInductorBackend
-from aitune.torch.module.wrapper_module import ModuleState, get_object_name
-from aitune.torch.task.correctness import CorrectnessValueError
-from aitune.torch.task.profiling import NumStepsMeasuringStopStrategy, StableWindowMeasuringStopStrategy
-from aitune.torch.task.profiling.profiling_stop_strategy import (
+from tests.toy_backends import BuildFailsBackend, SleepBackend
+from tests.toy_models.torch_models import ToyTorchModel
+from tests.utilities.helpers import requires_xpu
+from torch_tweak.torch import Module
+from torch_tweak.torch.backend import Backend
+from torch_tweak.torch.backend.torch_eager import TorchEagerBackend
+from torch_tweak.torch.backend.torch_inductor_backend import TorchInductorBackend
+from torch_tweak.torch.module.wrapper_module import ModuleState, get_object_name
+from torch_tweak.torch.task.correctness import CorrectnessValueError
+from torch_tweak.torch.task.profiling import NumStepsMeasuringStopStrategy, StableWindowMeasuringStopStrategy
+from torch_tweak.torch.task.profiling.profiling_stop_strategy import (
     AllSamplesProfilingStopStrategy,
     ThroughputSaturatedProfilingStopStrategy,
 )
-from aitune.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
-from aitune.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
-from aitune.torch.tuning import tune
-from tests.toy_backends import BuildFailsBackend, SleepBackend
-from tests.toy_models.torch_models import ToyTorchModel
-from tests.utilities.helpers import requires_cuda
+from torch_tweak.torch.tune_strategy.extension import TuneStrategyFindMaxBatchSizeExtension
+from torch_tweak.torch.tune_strategy.highest_throughput_strategy import HighestThroughputStrategy
+from torch_tweak.torch.tuning import tune
 
 
 @pytest.fixture
@@ -99,7 +102,7 @@ def test_highest_throughput_strategy_max_batch_size_in_graph_spec(torch_device, 
         assert tensor_spec.max_shape[0] == 8
 
 
-@requires_cuda
+@requires_xpu
 def test_highest_throughput_strategy_num_steps_all_samples(torch_device):
     find_profiling_config = TuneStrategyFindMaxBatchSizeExtension.default_profiling_config(max_batch_size=16)
     find_profiling_config.measurement_stop_strategy = NumStepsMeasuringStopStrategy(num_steps=10)
@@ -146,7 +149,7 @@ def test_highest_throughput_strategy_num_steps_all_samples(torch_device):
     assert graph_specs[0].tensor_specs[0].max_shape[0] == 16
 
 
-@requires_cuda
+@requires_xpu
 def test_highest_throughput_strategy_stable_window(torch_device):
     strategy = HighestThroughputStrategy(
         backends=[

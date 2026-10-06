@@ -1,10 +1,27 @@
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
--->
-# NVIDIA AITune Examples
 
-This directory contains practical examples demonstrating how to use NVIDIA AITune to tune different types of AI models for inference performance.
+NOTE: This file has been modified by Intel Corporation.
+-->
+# Torch Tweak Examples
+
+This directory contains practical examples demonstrating how to use Torch Tweak to tune different types of AI models for inference performance.
+
+## Minimal
+
+### Smallest tuning demo
+
+Tunes a tiny MLP and selects the faster of Torch Inductor and Torch Eager. This is the shortest example in the tree.
+
+- **Location**: [`Minimal`](./Minimal/README.md)
+- **Model**: a two-layer MLP defined in the script
+- **Use Case**: The shortest path from a PyTorch module to a tuned backend
+- **Key Features**:
+  - One script, no dataset and no checkpoint
+  - Highest-throughput backend selection
+  - Intel XPU when available, otherwise CPU
 
 ## ResNet
 
@@ -16,7 +33,7 @@ Shows how to tune ResNet models for image classification tasks. This example dem
 - **Model**: ResNet50 image classification
 - **Use Case**: Optimizing CNN models for computer vision tasks
 - **Key Features**:
-  - Model tuning with AITune
+  - Model tuning with Torch Tweak
   - Image classification inference
   - Performance comparison before/after tuning
 - **More Info**:
@@ -29,14 +46,14 @@ Shows how to tune ResNet models for image classification tasks. This example dem
 Demonstrates tuning of Stable Diffusion models for text-to-image generation. This example shows how to tune diffusion models for faster and more efficient image generation.
 
 - **Location**: [`StableDiffusion`](./StableDiffusion/README.md)
-- **Model**: Stable Diffusion 3 from HuggingFace
-- **Use Case**: Optimizing text-to-image diffusion models
+- **Model**: Stable Diffusion 1.5 from HuggingFace (default in the example)
+- **Use Case**: Optimizing text-to-image diffusion models on Intel XPU
 - **Key Features**:
-  - Diffusion pipeline tuning
-  - Customizable image generation parameters
+  - Diffusion pipeline tuning (OpenVINO, Inductor, Eager)
+  - Hybrid vs single-backend benchmark
   - Text prompt-based image synthesis
 - **More Info**:
-  - <https://huggingface.co/stabilityai/stable-diffusion-3-medium-diffusers>
+  - <https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5>
 
 ## FLUX
 
@@ -45,14 +62,14 @@ Demonstrates tuning of Stable Diffusion models for text-to-image generation. Thi
 Shows tuning of the FLUX text-to-image model, demonstrating advanced diffusion model tuning techniques for high-quality image generation.
 
 - **Location**: [`FLUX`](./FLUX/README.md)
-- **Model**: FLUX.1-dev from Black Forest Labs
+- **Model**: FLUX.2-klein-4B from Black Forest Labs
 - **Use Case**: Optimizing state-of-the-art text-to-image models
 - **Key Features**:
   - Advanced diffusion model tuning
   - High-quality image generation
   - Efficient inference pipeline tuning
 - **More Info**:
-  - <https://huggingface.co/black-forest-labs/FLUX.1-dev>
+  - <https://huggingface.co/black-forest-labs/FLUX.2-klein-4B>
 
 ## ParakeetCTC
 
@@ -130,31 +147,12 @@ Demonstrates tuning of Large Language Models for text generation tasks. This exa
 - **Model**: Microsoft Phi-3-mini-4k-instruct from HuggingFace
 - **Use Case**: Optimizing LLMs for text generation and inference
 - **Key Features**:
-  - LLM model tuning with AITune
+  - LLM model tuning with Torch Tweak
   - Static and dynamic KV cache optimization
   - Prefill and decode phase optimization
   - HuggingFace integration
 - **More Info**:
   - <https://huggingface.co/microsoft/Phi-3-mini-4k-instruct>
-
-## JIT Tuning
-
-### Just-In-Time Model Tuning
-
-Demonstrates how to use NVIDIA AITune with JIT (Just-In-Time) tuning that requires no code changes. This example shows how to enable automatic tuning through environment variables without modifying existing code.
-
-- **Location**: [`JitTuning`](./JitTuning/README.md)
-- **Models**: Various models including ResNet, Stable Diffusion 3, Stable Diffusion XL, and FLUX
-- **Use Case**: Zero-code-change automatic model optimization
-- **Key Features**:
-  - No-code JIT tuning via environment variables
-  - Automatic tuning without imports or code modifications
-  - Support for multiple model types (ResNet, diffusion models)
-  - Simple enable/disable through `AUTOWRAPT_BOOTSTRAP` variable
-- **More Info**:
-  - <https://huggingface.co/stabilityai/stable-diffusion-3-medium-diffusers>
-  - <https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0>
-  - <https://huggingface.co/black-forest-labs/FLUX.1-dev>
 
 ---
 
@@ -163,6 +161,5 @@ Each example includes:
 - Complete setup instructions
 - Usage examples with CLI commands
 - Model-specific tuning parameters
-- AI Dynamo deployment instructions
 
 To get started, navigate to any example directory and follow the README instructions for that specific model type.
