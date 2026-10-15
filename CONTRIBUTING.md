@@ -139,14 +139,34 @@ uv run properdocs serve
 #### How staging works
 
 A few pages of the site come from files outside `docs/`: `ChangeLog.md`,
-`CONTRIBUTING.md`, `LICENSE`, and the READMEs under `examples/`. The
-`scripts/stage_docs.py` ProperDocs hook copies them into `docs/` before every
-build, including live-reload rebuilds, so you never need to copy them
-manually. `LICENSE` is staged as `docs/LICENSE.md`, and `examples/README.md`
-as `docs/examples/examples.md`.
+`LICENSE`, and the READMEs under `examples/`. The `scripts/stage_docs.py`
+ProperDocs hook copies them into `docs/` before every build, including
+live-reload rebuilds, so you never need to copy them manually. One file is
+renamed when staged:
+
+- `LICENSE` is staged as `docs/LICENSE.md`. ProperDocs renders only Markdown
+  files as pages, so without the `.md` extension it could not be listed in the
+  navigation.
 
 The copies are gitignored and overwritten on every build. Always edit the
 original files, not the copies in `docs/`.
+
+Community files such as this guide, `SECURITY.md`, `CODE_OF_CONDUCT.md` and
+`COMMIT_CONVENTION.md` are not part of the site. The navigation links to them
+on GitHub, because they always apply as they are on `main`, not per release.
+
+#### Writing links
+
+Links in `docs/` and in staged files are written for the docs site, not for
+GitHub. Link only to other pages of the site, with paths relative to the
+staged location in `docs/` (e.g. `../LICENSE.md` from `docs/learn/`). Such
+links may not work when browsing the files on GitHub. Do not link to other
+files in this repository, such as `README.md` or scripts in `examples/`,
+because the site does not contain them.
+
+CI builds the docs with `properdocs build --strict`, so broken links between
+pages fail the build. Links to external sites are not checked. Run the same
+command locally before opening a pull request.
 
 ## Code style
 
