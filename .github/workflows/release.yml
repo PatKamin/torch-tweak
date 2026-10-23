@@ -59,7 +59,7 @@ jobs:
             exit 1
           fi
 
-  # TODO: packaging.yml also builds the example wheels, which are never
+  # Note: packaging.yml also builds the example wheels, which are never
   # published, so a broken example blocks the release.
   build:
     name: Build
