@@ -31,10 +31,13 @@ def inspect(
     inference_function: Callable | None = None,
     number_of_iterations: int = DEFAULT_INSPECT_ITERATIONS,
     warmup_iterations: int = DEFAULT_WARMUP_ITERATIONS,
-    min_depth: int = 0,
-    max_depth: int = 5,
+    depth: int = 0,
+    warn_if_no_modules: bool = True,
 ) -> InspectedModulesInfo:
     """Inspect provided callable object searching for nn.Module members executed as part of forward pass.
+
+    The depth of a module is the number of executed modules above it. Depth 0 holds the outermost
+    executed modules: `obj` itself when it is an executed module, otherwise its executed members.
 
     Args:
         obj: Callable object to inspect.
@@ -42,15 +45,19 @@ def inspect(
         inference_function: Custom inference function to use for inspection, obj is used by default.
         number_of_iterations: Number of iterations to run for inference.
         warmup_iterations: Number of iterations to run for warmup.
-        min_depth: Minimum depth of the modules to inspect, if root level modules is not working, try to increase this value
-        max_depth: Maximum depth of the modules to inspect
+        depth: Depth at which the model is cut into modules. Executed modules at this depth are returned,
+            together with shallower executed modules that have no executed children.
+            Increase it when the outermost modules cannot be tuned.
+        warn_if_no_modules: Warn when the walk stops at the path limit before any module is registered.
+            The path limit is calculated from `depth`. Increase `depth` to walk further.
+
     Returns:
         InspectedModulesInfo object.
     """
     setup_logging(format_string=LOG_FORMAT)
 
     logger.info("Inspecting object searching for executed nn.Module members.")
-    model_inspector = ModuleInspector(min_depth=min_depth, max_depth=max_depth)
+    model_inspector = ModuleInspector(depth=depth)
     model_inspector.inspect(obj)
 
     # If no inference function is provided, use the obj
@@ -78,6 +85,18 @@ def inspect(
     modules = model_inspector.get_modules()
 
     logger.info("Inspection done. Found %d candidate modules for tuning.", len(modules))
+    if (
+        warn_if_no_modules
+        and not modules
+        and not model_inspector._module_info
+        and model_inspector._stopped_at_path_limit
+    ):
+        logger.warning(
+            "No modules found. The walk stopped at path depth %d, calculated from depth=%d. "
+            "Increase depth to walk further.",
+            model_inspector._max_path_depth,
+            depth,
+        )
 
     inspected_modules_info = InspectedModulesInfo(total_execution_time, number_of_iterations)
     for module in modules:
