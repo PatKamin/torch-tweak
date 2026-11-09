@@ -29,6 +29,12 @@ SPDX-License-Identifier: Apache-2.0
   A bf16 output, or a float16 input of a bf16 graph, came back as other numbers (#100)
 - feat: `TorchAOBackendConfig(offload_module=False)` leaves the module on its device after quantization,
   for a module that a framework keeps calling. The weights then exist twice on the device (#101)
+- feat (breaking): the correctness check rejects backends whose outputs differ from the module outputs (#99).
+  A floating point output may differ by the square root of its dtype epsilon, relative to its largest magnitude in the module output.
+  A Python `float` in the output may differ by the tolerance of the default dtype. Other Python scalars must be equal.
+  `Backend.output_tolerance` allows more. TorchAO allows 0.25.
+  OpenVINO allows the tolerance of the precision it computes in, float16 for float32 models on a GPU.
+  A module whose outputs change between calls with the same inputs needs `enable_correctness_check(False)`.
 
 ## 0.4.1
 
