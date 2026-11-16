@@ -217,7 +217,9 @@ class OpenVINOBackend(Backend):
         inputs = {name: tensor.contiguous() for name, tensor in inputs.items()}
         output_shapes = self._output_shapes_for(inputs)
         outputs = {
-            tensor_spec.name: torch.empty(output_shapes[tensor_spec.name], dtype=tensor_spec.dtype, device=self._device)
+            tensor_spec.name: torch.empty(
+                output_shapes[tensor_spec.name], dtype=tensor_spec.dtype, device=self._xpu_request.device
+            )
             for tensor_spec in self._graph_spec.output_spec.tensor_specs
             if tensor_spec.name in output_shapes
         }
