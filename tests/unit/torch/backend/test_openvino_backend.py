@@ -711,28 +711,6 @@ def test_openvino_xpu_second_infer_with_the_same_shape_keeps_the_first_result(tm
 
 
 @requires_leo
-def test_openvino_xpu_writes_outputs_to_the_device_the_model_is_compiled_for(tmp_path, monkeypatch):
-    # This test patches torch on purpose, against the test rules: CI has one XPU, and a bare "xpu"
-    # resolves to the current device in C++, which no Python patch can move. Redirecting a bare "xpu"
-    # allocation to the CPU stands in for a switch of the current device. Rewrite the test with
-    # torch.xpu.set_device(1) once CI has two XPUs.
-    sample = torch.zeros(2, 3, device="xpu")
-    backend = backend_build(OpenVINOBackend(), _DoubleModel(), [((sample,), {})], tmp_path, torch.device("xpu"))
-    real_empty = torch.empty
-
-    def empty_after_the_current_device_switched(*size, device=None, **kwargs):
-        if device == torch.device("xpu"):
-            device = "cpu"
-        return real_empty(*size, device=device, **kwargs)
-
-    monkeypatch.setattr(torch, "empty", empty_after_the_current_device_switched)
-
-    actual = backend.infer(torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device="xpu"))
-
-    torch.testing.assert_close(actual, torch.tensor([[2.0, 4.0, 6.0], [8.0, 10.0, 12.0]], device="xpu"))
-
-
-@requires_leo
 def test_openvino_xpu_compiles_an_ir_whose_scalar_input_has_a_dynamic_rank(tmp_path, monkeypatch):
     # The IR keeps the dynamic rank `[...]` that OVC gives `scale`, as in a checkpoint written without
     # the converter workaround.

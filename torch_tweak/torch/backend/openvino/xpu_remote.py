@@ -246,12 +246,7 @@ def has_level_zero_interop(device: torch.device) -> bool:
 
 
 class XpuInferRequest:
-    """An OpenVINO GPU infer request that binds PyTorch XPU tensors as remote tensors.
-
-    Attributes:
-        device: XPU device with an index that the model is compiled for. Every tensor passed to
-            ``infer`` lives on it.
-    """
+    """An OpenVINO GPU infer request that binds PyTorch XPU tensors as remote tensors."""
 
     def __init__(
         self,
@@ -272,7 +267,7 @@ class XpuInferRequest:
             scalar_inputs: Model inputs to reshape to a static scalar before compiling.
         """
         # Tensors on XPU always carry an index, and "xpu" without one is the current device.
-        self.device = device if device.index is not None else torch.device(device.type, torch.xpu.current_device())
+        self._device = device if device.index is not None else torch.device(device.type, torch.xpu.current_device())
         self._release: list[tuple[Callable[[int], None], int]] = []
         # A finalizer that references self keeps it alive, so it never runs.
         weakref.finalize(self, _release_all, self._release)
@@ -288,7 +283,7 @@ class XpuInferRequest:
 
     def _compile(self, model_xml: Path, ov_device: str, config: Mapping[str, str], scalar_inputs: Sequence[str]):
         lib = _openvino_c()
-        cl_context = self._own(_opencl().clReleaseContext, _opencl_context(*_level_zero_handles(self.device)))
+        cl_context = self._own(_opencl().clReleaseContext, _opencl_context(*_level_zero_handles(self._device)))
 
         out = _P()
         _check(lib.ov_core_create(ctypes.byref(out)), "ov_core_create")
@@ -367,9 +362,9 @@ class XpuInferRequest:
         remote_tensors: list[int] = []
         try:
             for name, tensor in (*inputs.items(), *outputs.items()):
-                if tensor.device != self.device:
+                if tensor.device != self._device:
                     raise ValueError(
-                        f"OpenVINO tensor {name} is on {tensor.device}, but the model runs on {self.device}"
+                        f"OpenVINO tensor {name} is on {tensor.device}, but the model runs on {self._device}"
                     )
                 remote_tensors.append(self._remote_tensor(tensor))
                 _check(
@@ -377,7 +372,7 @@ class XpuInferRequest:
                     "ov_infer_request_set_tensor",
                 )
             # OpenVINO runs on its own queue and does not wait for the PyTorch stream.
-            torch.xpu.current_stream(self.device).synchronize()
+            torch.xpu.current_stream(self._device).synchronize()
             _check(lib.ov_infer_request_infer(self._request), "ov_infer_request_infer")
         finally:
             for remote_tensor in remote_tensors:
