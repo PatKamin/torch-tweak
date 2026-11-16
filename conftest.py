@@ -12,6 +12,7 @@ import os
 import pytest
 import torch
 
+from tests.utilities.helpers import LEO_MISSING, has_leo
 from torch_tweak.torch.module_registry import MODULE_REGISTRY
 from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 from torch_tweak.utils.logging import setup_logging
@@ -65,6 +66,13 @@ def torch_device():
         return torch.device(user_device)
 
     return torch.device("xpu" if is_xpu_available() else "cpu")
+
+
+@pytest.fixture
+def skip_without_leo():
+    """Skips the test when OpenVINO cannot read and write XPU memory in place."""
+    if not has_leo():
+        pytest.skip(LEO_MISSING)
 
 
 @pytest.fixture(autouse=True)

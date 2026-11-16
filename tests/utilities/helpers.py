@@ -5,6 +5,7 @@
 # NOTE: This file has been modified by Intel Corporation.
 """Helper functions and classes for testing."""
 
+import functools
 import importlib.util
 
 import pytest
@@ -16,7 +17,12 @@ from torch_tweak.torch.utils.xpu import is_available as is_xpu_available
 requires_xpu = pytest.mark.skipif(not is_xpu_available(), reason="XPU is not available")
 
 
-def _has_level_zero_interop() -> bool:
+@functools.cache
+def has_leo() -> bool:
+    """Returns whether OpenVINO can read and write XPU memory in place.
+
+    The probe allocates XPU memory and creates an OpenCL context, so it runs on the first call, not on import.
+    """
     if not is_xpu_available() or importlib.util.find_spec("openvino") is None:
         return False
     from torch_tweak.torch.backend.openvino.xpu_remote import has_level_zero_interop
@@ -24,9 +30,9 @@ def _has_level_zero_interop() -> bool:
     return has_level_zero_interop(torch.device("xpu"))
 
 
-has_leo = _has_level_zero_interop()
 LEO_MISSING = "The Intel GPU driver cannot run OpenCL on Level Zero (EnableLEO=1 on Battlemage)"
-requires_leo = pytest.mark.skipif(not has_leo, reason=LEO_MISSING)
+# The `skip_without_leo` fixture in the root conftest.py calls `has_leo` when the test starts.
+requires_leo = pytest.mark.usefixtures("skip_without_leo")
 
 
 def assert_only_primitives(value):

@@ -97,7 +97,7 @@ class _TwoKwargModel(nn.Module):
 
 @pytest.fixture
 def torch_device(torch_device):
-    if torch_device.type == "xpu" and not has_leo:
+    if torch_device.type == "xpu" and not has_leo():
         pytest.skip(LEO_MISSING)
     return torch_device
 
