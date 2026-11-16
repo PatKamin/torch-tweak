@@ -31,23 +31,6 @@ from torch_tweak.utils.permissions import secure_mkdir
 logger = logging.getLogger(__name__)
 
 
-def _tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
-    if not tensor.is_contiguous():
-        tensor = tensor.contiguous()
-    return tensor.detach().cpu().numpy()
-
-
-def _ov_tensor_to_torch(ov_value: Any, dtype: torch.dtype | None) -> torch.Tensor:
-    if hasattr(ov_value, "data"):
-        arr = np.array(ov_value.data)
-    else:
-        arr = np.asarray(ov_value)
-    tensor = torch.from_numpy(arr.copy())
-    if dtype is not None:
-        tensor = tensor.to(dtype=dtype)
-    return tensor
-
-
 def openvino_device_for_xpu(core: ov.Core, device: torch.device) -> str:
     """Returns the OpenVINO GPU that is the same physical device as the PyTorch XPU ``device``.
 
@@ -139,13 +122,11 @@ class OpenVINOBackend(Backend):
             raise RuntimeError("OpenVINO model path is not set")
         core = ov.Core()
         ov_model = core.read_model(self._ov_model_xml)
-        scalar_inputs: list[str] = []
-        if self._graph_spec is not None:
-            # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
-            # re-applied here, because the IR may come from a checkpoint written without it.
-            tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
-            scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
-            ov_model.validate_nodes_and_infer_types()
+        # GraphSpec shapes are already baked into the IR; only the extra-input workaround has to be
+        # re-applied here, because the IR may come from a checkpoint written without it.
+        tensor_input_names = {ts.name for ts in self._graph_spec.input_spec.tensor_specs}
+        scalar_inputs = staticize_extra_openvino_inputs(ov_model.inputs, tensor_input_names)
+        ov_model.validate_nodes_and_infer_types()
         self._input_names = {self._openvino_port_name(port) for port in ov_model.inputs}
         compile_config = {}
         if self._config.performance_hint:
@@ -197,7 +178,8 @@ class OpenVINOBackend(Backend):
             return self._prepare_outputs_for_return(torch_outputs)
 
     def _infer_on_host(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        ov_inputs = {name: _tensor_to_numpy(tensor) for name, tensor in inputs.items()}
+        # CompiledModel reads host inputs as C-contiguous numpy arrays.
+        ov_inputs = {name: tensor.detach().cpu().contiguous().numpy() for name, tensor in inputs.items()}
         ov_outputs = self._compiled_model(ov_inputs)
         if hasattr(ov_outputs, "to_dict"):
             ov_outputs = {(getattr(k, "any_name", None) or str(k)): v for k, v in ov_outputs.to_dict().items()}
@@ -209,8 +191,9 @@ class OpenVINOBackend(Backend):
         for _locator, tensor_spec in self._graph_spec.output_spec.tensor_data:
             if tensor_spec.name not in ov_outputs:
                 continue
-            ov_out = ov_outputs[tensor_spec.name]
-            torch_outputs[tensor_spec.name] = _ov_tensor_to_torch(ov_out, tensor_spec.dtype)
+            # The infer request reuses its output buffer on the next call.
+            tensor = torch.from_numpy(np.array(ov_outputs[tensor_spec.name]))
+            torch_outputs[tensor_spec.name] = tensor.to(dtype=tensor_spec.dtype)
         return torch_outputs
 
     def _infer_on_xpu(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
