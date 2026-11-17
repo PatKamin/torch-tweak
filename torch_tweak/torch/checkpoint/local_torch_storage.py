@@ -44,6 +44,7 @@ class LocalTorchStorage(Storage):
             sha_type: The SHA type to use for hashing. Must be either "256" or "512".
             strict_environment: Whether loading a compressed checkpoint tuned in another environment raises
                 ``IncompatibleCheckpointError``. Otherwise it logs a warning with the differences.
+                A different ``cpu``, ``machine``, or ``accelerator`` raises either way.
 
         Note: if the checkpoint folder is removed, it will be recreated from ai tune checkpoint at first load.
         """

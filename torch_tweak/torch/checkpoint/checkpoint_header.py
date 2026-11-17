@@ -34,11 +34,13 @@ _MAX_ENVIRONMENT_RECORD_LENGTH = 64 * 1024
 
 _LIBRARIES = ("torch", "openvino", "torchao", "triton", "triton-xpu", "intel-sycl-rt")
 
+_CRITICAL_KEYS = frozenset({"cpu", "machine", "accelerator"})
+
 logger = logging.getLogger(__name__)
 
 
 class IncompatibleCheckpointError(ValueError):
-    """The checkpoint is not this format, or was tuned in another environment and loading is strict."""
+    """The checkpoint is not this format, was tuned for other hardware, or loading is strict and the environment differs."""
 
 
 def tuning_environment() -> dict[str, str]:
@@ -69,7 +71,8 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
     Args:
         fp: Checkpoint file positioned at its start.
         environment: Environment of the running process.
-        strict: Raise instead of warning when the recorded environment differs from *environment*.
+        strict: Raise instead of warning when a recorded value other than ``cpu``, ``machine``, or ``accelerator``
+            differs.
 
     Returns:
         The environment recorded in the checkpoint.
@@ -77,8 +80,8 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
     Raises:
         IncompatibleCheckpointError: If the format version is not :data:`TT_FORMAT_VERSION`,
             the header is truncated, the environment record is longer than 64 KiB or is not
-            a JSON object of strings, or *strict* is set and the recorded environment differs
-            from *environment*.
+            a JSON object of strings, ``cpu``, ``machine``, or ``accelerator`` differs from *environment*,
+            or *strict* is set and another recorded value differs from *environment*.
     """
     format_bytes = fp.read(_UINT32.size)
     if format_bytes == _ZIP_SIGNATURE:
@@ -100,11 +103,13 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
     if len(record) != record_length:
         raise IncompatibleCheckpointError("Checkpoint header is truncated. Tune the model again.")
     recorded = _environment_record(record)
-    differences = [
-        f"{key}: tuned with {recorded.get(key)!r}, running {environment.get(key)!r}"
-        for key in sorted(recorded.keys() | environment.keys())
-        if recorded.get(key) != environment.get(key)
-    ]
+    keys = recorded.keys() | environment.keys()
+    critical_differences = _environment_differences(recorded, environment, keys & _CRITICAL_KEYS)
+    if critical_differences:
+        raise IncompatibleCheckpointError(
+            "Checkpoint was tuned for other hardware. Tune the model again.\n" + "\n".join(critical_differences)
+        )
+    differences = _environment_differences(recorded, environment, keys - _CRITICAL_KEYS)
     if differences and strict:
         raise IncompatibleCheckpointError(
             "Checkpoint was tuned in another environment. Tune the model again.\n" + "\n".join(differences)
@@ -116,6 +121,14 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
             "\n".join(differences),
         )
     return recorded
+
+
+def _environment_differences(recorded: dict[str, str], environment: dict[str, str], keys: set[str]) -> list[str]:
+    return [
+        f"{key}: tuned with {recorded.get(key)!r}, running {environment.get(key)!r}"
+        for key in sorted(keys)
+        if recorded.get(key) != environment.get(key)
+    ]
 
 
 def _uint32(raw: bytes) -> int:
@@ -160,9 +173,13 @@ def _accelerators() -> dict[str, str]:
         return {}
     device_type = torch.accelerator.current_accelerator().type
     device_module = getattr(torch, device_type)
-    descriptions = set()
+    names = set()
+    drivers = set()
     for index in range(torch.accelerator.device_count()):
         properties = device_module.get_device_properties(index)
-        driver = getattr(properties, "driver_version", None) or torch.version.cuda or torch.version.hip
-        descriptions.add(f"{properties.name}, driver {driver}")
-    return {device_type: "; ".join(sorted(descriptions))}
+        names.add(properties.name)
+        drivers.add(getattr(properties, "driver_version", None) or torch.version.cuda or torch.version.hip or "unknown")
+    return {
+        "accelerator": f"{device_type}: {'; '.join(sorted(names))}",
+        "driver": "; ".join(sorted(drivers)),
+    }
