@@ -3,6 +3,7 @@
 """Tests for the header of ``.tt`` checkpoint files."""
 
 import io
+import json
 import logging
 import shutil
 
@@ -58,10 +59,61 @@ def test_a_checkpoint_saved_before_the_format_version_is_rejected():
         read_header(fp, {"cpu": "a"})
 
 
-def test_an_empty_checkpoint_is_rejected():
-    fp = io.BytesIO(b"")
+@pytest.mark.parametrize(
+    "header",
+    [
+        b"",
+        b"\x01\x00",
+        b"PK\x03",
+        b"\x01\x00\x00\x00",
+        b"\x01\x00\x00\x00" + b"\x0c\x00",
+        b"\x01\x00\x00\x00" + b"\x0c\x00\x00\x00" + b'{"cpu":',
+    ],
+)
+def test_a_truncated_checkpoint_header_is_rejected(header):
+    fp = io.BytesIO(header)
 
-    with pytest.raises(IncompatibleCheckpointError, match="format version None is not 1"):
+    with pytest.raises(IncompatibleCheckpointError, match="truncated"):
+        read_header(fp, {"cpu": "a"})
+
+
+def test_an_environment_record_over_the_limit_is_rejected():
+    fp = io.BytesIO(b"\x01\x00\x00\x00" + b"\x01\x00\x01\x00")
+
+    with pytest.raises(IncompatibleCheckpointError, match="65537 bytes, the limit is 65536"):
+        read_header(fp, {"cpu": "a"})
+
+
+def test_an_environment_record_that_is_not_json_keeps_the_decode_error():
+    fp = io.BytesIO(b"\x01\x00\x00\x00" + b"\x01\x00\x00\x00" + b"{")
+
+    with pytest.raises(IncompatibleCheckpointError, match="not UTF-8 JSON") as raised:
+        read_header(fp, {"cpu": "a"})
+
+    assert isinstance(raised.value.__cause__, json.JSONDecodeError)
+
+
+def test_an_environment_record_that_is_not_utf8_keeps_the_decode_error():
+    fp = io.BytesIO(b"\x01\x00\x00\x00" + b"\x01\x00\x00\x00" + b"\xff")
+
+    with pytest.raises(IncompatibleCheckpointError, match="not UTF-8 JSON") as raised:
+        read_header(fp, {"cpu": "a"})
+
+    assert isinstance(raised.value.__cause__, UnicodeDecodeError)
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        b"\x01\x00\x00\x00" + b"\x02\x00\x00\x00" + b"[]",
+        b"\x01\x00\x00\x00" + b"\x04\x00\x00\x00" + b"null",
+        b"\x01\x00\x00\x00" + b"\x0a\x00\x00\x00" + b'{"cpu": 1}',
+    ],
+)
+def test_an_environment_record_that_is_not_an_object_of_strings_is_rejected(header):
+    fp = io.BytesIO(header)
+
+    with pytest.raises(IncompatibleCheckpointError, match="not an object of strings"):
         read_header(fp, {"cpu": "a"})
 
 
