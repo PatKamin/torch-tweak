@@ -160,6 +160,8 @@ def _accelerators() -> dict[str, str]:
         return {}
     device_type = torch.accelerator.current_accelerator().type
     device_module = getattr(torch, device_type)
+    if not hasattr(device_module, "get_device_properties"):
+        return {"accelerator": device_type}
     names = set()
     drivers = set()
     for index in range(torch.accelerator.device_count()):

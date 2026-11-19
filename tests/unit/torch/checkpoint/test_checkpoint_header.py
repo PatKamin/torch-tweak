@@ -196,3 +196,14 @@ def test_tuning_environment_records_the_accelerator_name_apart_from_the_driver()
 
     assert environment["accelerator"] == f"xpu: {torch.xpu.get_device_properties(0).name}"
     assert environment["driver"] == torch.xpu.get_device_properties(0).driver_version
+
+
+@requires_xpu
+def test_tuning_environment_records_only_the_type_of_an_accelerator_without_device_properties(monkeypatch):
+    """torch.mps has no get_device_properties. Removing it from torch.xpu stands in for MPS."""
+    monkeypatch.delattr(torch.xpu, "get_device_properties")
+
+    environment = tuning_environment()
+
+    assert environment["accelerator"] == "xpu"
+    assert "driver" not in environment
