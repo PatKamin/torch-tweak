@@ -443,8 +443,7 @@ class UnzipLoadTask(LoadTask):
         Raises:
             FileNotFoundError: If the zip file does not exist.
             IncompatibleCheckpointError: If the checkpoint has another format version,
-                ``cpu``, ``machine``, or ``accelerator`` differs, or ``strict_environment`` is set and
-                another recorded value differs.
+                or was tuned in another environment and ``strict_environment`` is set.
         """
         zip_path = path.with_name(path.name + TT_EXTENSION)
         if not zip_path.exists():
