@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import shutil
+import struct
 
 import pytest
 import torch
@@ -46,10 +47,17 @@ def test_reading_the_header_returns_the_recorded_environment():
     assert read_header(fp, {"cpu": "b"}) == {"cpu": "a"}
 
 
-def test_another_format_version_is_rejected_before_the_environment_is_read():
-    fp = io.BytesIO(b"\x02\x00\x00\x00" + b"not a header of version 1")
+def test_a_newer_format_version_asks_to_upgrade_torch_tweak():
+    fp = io.BytesIO(struct.pack("<I", 9999999) + b"not a header")
 
-    with pytest.raises(IncompatibleCheckpointError, match="format version 2 is not 1"):
+    with pytest.raises(IncompatibleCheckpointError, match="format version 9999999 is newer than .*Upgrade torch-tweak"):
+        read_header(fp, {"cpu": "a"})
+
+
+def test_an_older_format_version_asks_to_tune_again():
+    fp = io.BytesIO(struct.pack("<I", 0) + b"not a header")
+
+    with pytest.raises(IncompatibleCheckpointError, match="format version 0 is not .*Tune the model again"):
         read_header(fp, {"cpu": "a"})
 
 

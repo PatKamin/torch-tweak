@@ -86,6 +86,11 @@ def read_header(fp: BinaryIO, environment: dict[str, str], strict: bool = False)
             "Checkpoint has no format version, it was saved by an older torch-tweak. Tune the model again."
         )
     format_version = _uint32(format_bytes)
+    if format_version > TT_FORMAT_VERSION:
+        raise IncompatibleCheckpointError(
+            f"Checkpoint format version {format_version} is newer than {TT_FORMAT_VERSION},"
+            " it was saved by a newer torch-tweak. Upgrade torch-tweak to load it."
+        )
     if format_version != TT_FORMAT_VERSION:
         raise IncompatibleCheckpointError(
             f"Checkpoint format version {format_version} is not {TT_FORMAT_VERSION}. Tune the model again."
