@@ -132,6 +132,19 @@ def test_restored_backend_returns_the_module_output():
     torch.testing.assert_close(actual, torch.tensor([[8.0, 10.0]]))
 
 
+def test_a_later_module_with_another_architecture_tunes_again():
+    sample = torch.randn(1, 2)
+    first = torch.nn.Sequential(torch.nn.Linear(2, 2, bias=False), torch.nn.ReLU())
+    second = torch.nn.Sequential(torch.nn.Linear(2, 2, bias=False), torch.nn.Tanh())
+    second.load_state_dict(first.state_dict())
+    OnlineTunedModule(first, "net", strategy=sleep_strategy(), device=torch.device("cpu"))(sample)
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(second, "net", strategy=strategy, device=torch.device("cpu"))(sample)
+
+    assert len(strategy.results) == 1
+
+
 def test_a_later_module_with_other_weights_tunes_again():
     OnlineTunedModule(doubling(), "linear", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
     strategy = sleep_strategy()

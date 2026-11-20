@@ -15,6 +15,7 @@ import torch.nn as nn
 
 from torch_tweak.torch.backend.backend import Backend
 from torch_tweak.torch.backend.openvino import OpenVINOBackend, OpenVINOBackendConfig
+from torch_tweak.torch.checkpoint.checkpoint_header import tuning_environment
 from torch_tweak.torch.config import torch_tweak_cache_dir
 from torch_tweak.torch.module.graph_spec import GraphSpec
 from torch_tweak.torch.module.sample_metadata import SampleMetadata
@@ -60,7 +61,7 @@ class OnlineTunedModule:
     Only the backend of the last call stays active, since an OpenVINO model holds its own copy of the weights.
     Returning to other shapes activates their backend again, which can recompile it.
 
-    The selection is saved under the cache directory, keyed by the weights and the shapes.
+    The selection is saved under the cache directory, keyed by the weights, the architecture, the libraries, the hardware and the shapes.
     A later process with the same weights builds the saved backend for those shapes and skips tuning.
 
     The module stays where it is and keeps its `forward`. Its owner can keep calling and patching it.
@@ -104,7 +105,7 @@ class OnlineTunedModule:
         self._backends: dict[Hashable, Backend] = {}
         self._active: Backend | None = None
         self._failed: set[Hashable] = set()
-        self._weights_fingerprint: str | None = None
+        self._model_key: str | None = None
 
     @property
     def backends(self) -> dict[Hashable, Backend]:
@@ -148,7 +149,7 @@ class OnlineTunedModule:
         self._deactivate_active()
         self._backends.clear()
         self._failed.clear()
-        self._weights_fingerprint = None
+        self._model_key = None
 
     def _deactivate_active(self) -> None:
         if self._active is not None:
@@ -156,9 +157,9 @@ class OnlineTunedModule:
             self._active = None
 
     def _cache_dir(self, graph_spec: GraphSpec) -> Path:
-        if self._weights_fingerprint is None:
-            self._weights_fingerprint = weights_fingerprint(self._module)
-        cache_dir = torch_tweak_cache_dir() / self._name / self._weights_fingerprint / graph_spec.name
+        if self._model_key is None:
+            self._model_key = _model_key(self._module)
+        cache_dir = torch_tweak_cache_dir() / self._name / self._model_key / graph_spec.name
         secure_mkdir(cache_dir)
         return cache_dir
 
@@ -192,4 +193,10 @@ class OnlineTunedModule:
 
 def _shapes_digest(metadata: SampleMetadata, shapes: tuple) -> str:
     described = json.dumps([metadata.to_dict(), repr(shapes)], sort_keys=True, default=str)
+    return hashlib.sha256(described.encode()).hexdigest()[:16]
+
+
+def _model_key(module: nn.Module) -> str:
+    """Keys what a saved backend depends on: the weights, the architecture, and the libraries and hardware."""
+    described = json.dumps([weights_fingerprint(module), repr(module), tuning_environment()], sort_keys=True)
     return hashlib.sha256(described.encode()).hexdigest()[:16]

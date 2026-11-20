@@ -244,8 +244,9 @@ The module stays on its device and keeps its `forward`.
 All its weights must already be on the device.
 Call `reset()` after the owner changes the weights in any way: moves them, replaces them, or patches their values in place. A backend serves the weights it was built on.
 
-The selected backend is saved under `<cache dir>/<name>/<weights fingerprint>/<shapes digest>/`.
-A later process with the same weights builds that backend without tuning.
+The selected backend is saved under `<cache dir>/<name>/<model key>/<shapes digest>/`.
+The model key covers every weight value, the module architecture, the library versions and the hardware.
+A later process with the same key builds that backend without tuning.
 OpenVINO compiles the IR saved there instead of converting the module again.
 
 ## Dry Run Mode

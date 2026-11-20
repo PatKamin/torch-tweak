@@ -45,12 +45,12 @@ def _holding(tensor: torch.Tensor) -> nn.Module:
     return module
 
 
-def test_weights_fingerprint_samples_the_last_value_of_a_tensor_too_long_for_float32_indices():
-    zeros = torch.zeros(16_777_218, dtype=torch.uint8)
-    last_one = zeros.clone()
-    last_one[-1] = 1
+def test_weights_fingerprint_sees_a_change_of_one_value_in_a_large_tensor():
+    zeros = torch.zeros(1_000_003, dtype=torch.bfloat16)
+    one_changed = zeros.clone()
+    one_changed[12_345] = 1
 
-    fingerprints = (weights_fingerprint(_holding(zeros)), weights_fingerprint(_holding(last_one)))
+    fingerprints = (weights_fingerprint(_holding(zeros)), weights_fingerprint(_holding(one_changed)))
 
     assert fingerprints[0] != fingerprints[1]
 

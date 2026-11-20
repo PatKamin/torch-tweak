@@ -44,13 +44,10 @@ def format_num_parameters(num: int) -> str:
         return f"{num}"
 
 
-WEIGHT_SAMPLES_PER_TENSOR = 16
-
-
 def weights_fingerprint(module: nn.Module) -> str:
-    """Hashes the name, shape, dtype, and evenly spaced values of every tensor in `module.state_dict()`.
+    """Hashes the name, shape, dtype, and every value of every tensor in `module.state_dict()`.
 
-    The sampled values tell apart checkpoints of one architecture, such as two finetunes of one model.
+    Any change of a value changes the fingerprint, so it can key data that was built from the weights.
 
     >>> layer = nn.Linear(2, 2)
     >>> before = weights_fingerprint(layer)
@@ -62,16 +59,10 @@ def weights_fingerprint(module: nn.Module) -> str:
     False
     """
     digest = hashlib.sha256()
-    samples = []
     for name, tensor in module.state_dict().items():
         digest.update(f"{name}:{tuple(tensor.shape)}:{tensor.dtype};".encode())
-        flat = tensor.detach().reshape(-1)
-        if flat.numel():
-            steps = torch.arange(WEIGHT_SAMPLES_PER_TENSOR, device=flat.device)
-            index = steps * (flat.numel() - 1) // (WEIGHT_SAMPLES_PER_TENSOR - 1)
-            samples.append(flat[index].float().cpu())
-    if samples:
-        digest.update(torch.cat(samples).numpy().tobytes())
+        # Viewing the bytes works for every dtype, including bfloat16.
+        digest.update(tensor.detach().reshape(-1).contiguous().cpu().view(torch.uint8).numpy())
     return digest.hexdigest()[:16]
 
 
