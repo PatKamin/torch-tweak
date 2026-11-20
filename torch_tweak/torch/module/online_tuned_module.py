@@ -130,7 +130,7 @@ class OnlineTunedModule:
         self._deactivate_active()
         # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
         graph_spec = GraphSpec(
-            name=_shapes_digest(metadata, key[1]),
+            name=_shapes_digest(metadata),
             input_spec=SampleMetadata.from_inputs(*sample, strict=True),
             output_spec=SampleMetadata.from_outputs(output, strict=True),
         )
@@ -191,8 +191,8 @@ class OnlineTunedModule:
         return backend
 
 
-def _shapes_digest(metadata: SampleMetadata, shapes: tuple) -> str:
-    described = json.dumps([metadata.to_dict(), repr(shapes)], sort_keys=True, default=str)
+def _shapes_digest(metadata: SampleMetadata) -> str:
+    described = json.dumps(metadata.to_dict(), sort_keys=True, default=str)
     return hashlib.sha256(described.encode()).hexdigest()[:16]
 
 
