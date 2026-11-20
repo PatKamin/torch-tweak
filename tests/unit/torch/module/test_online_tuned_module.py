@@ -7,7 +7,7 @@ import torch
 
 from tests.toy_backends import BuildFailsBackend, SleepBackend
 from tests.utilities.helpers import requires_leo
-from torch_tweak.torch import HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
+from torch_tweak.torch import FirstWinsStrategy, HighestThroughputStrategy, OneBackendStrategy, OnlineTunedModule
 from torch_tweak.torch.module import online_tuned_module
 
 
@@ -152,6 +152,119 @@ def test_a_later_module_with_other_weights_tunes_again():
     OnlineTunedModule(tripling(), "linear", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
 
     assert len(strategy.results) == 1
+
+
+class FailsFirstBuild(SleepBackend):
+    """Fails its first build in a test, and carries the key of `SleepBackend`."""
+
+    builds = 0
+
+    def key(self) -> str:
+        return "SleepBackend"
+
+    def _build(self, module, graph_spec, data, cache_dir):
+        FailsFirstBuild.builds += 1
+        if FailsFirstBuild.builds == 1:
+            raise RuntimeError("Build failed")
+        return super()._build(module, graph_spec, data, cache_dir)
+
+
+class CountingFirstWins(FirstWinsStrategy):
+    """Counts how many times it tunes."""
+
+    tune_calls = 0
+
+    def tune(self, *args, **kwargs):
+        self.tune_calls += 1
+        return super().tune(*args, **kwargs)
+
+
+def test_a_failed_restore_tunes_again():
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    FailsFirstBuild.builds = 0
+    strategy = sleep_strategy(backends=[FailsFirstBuild()])
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    actual = later(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
+    assert (strategy.tune_calls, len(later.backends)) == (1, 1)
+
+
+def test_a_saved_backend_the_strategy_does_not_offer_tunes_again(tmp_path):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    (selected,) = tmp_path.glob("doubling/*/*/selected_backend.txt")
+    selected.write_text("NoSuchBackend")
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_reset_with_unchanged_weights_restores_without_tuning():
+    strategy = sleep_strategy()
+    online = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+    online(torch.tensor([[1.0, 3.0]]))
+    online.reset()
+
+    online(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_every_shape_of_a_later_module_is_restored(tmp_path):
+    first = OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())
+    first(torch.tensor([[1.0, 3.0]]))
+    first(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+    strategy = sleep_strategy()
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    later(torch.tensor([[1.0, 3.0]]))
+    later(torch.tensor([[1.0, 3.0], [5.0, 7.0]]))
+
+    assert (strategy.tune_calls, len(later.backends), len(list(tmp_path.glob("doubling/*/*")))) == (0, 2, 2)
+
+
+def test_a_later_module_in_another_environment_tunes_again(monkeypatch):
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    monkeypatch.setattr(online_tuned_module, "tuning_environment", lambda: {"torch": "another version"})
+    strategy = sleep_strategy()
+
+    OnlineTunedModule(doubling(), "doubling", strategy=strategy)(torch.tensor([[1.0, 3.0]]))
+
+    assert strategy.tune_calls == 1
+
+
+def test_a_later_module_restores_the_selection_of_first_wins_strategy():
+    def strategy() -> CountingFirstWins:
+        result = CountingFirstWins(backends=[SleepBackend()])
+        result.enable_find_max_batch_size(False)
+        result.enable_correctness_check(False)
+        return result
+
+    first, later = strategy(), strategy()
+    OnlineTunedModule(doubling(), "doubling", strategy=first)(torch.tensor([[1.0, 3.0]]))
+
+    actual = OnlineTunedModule(doubling(), "doubling", strategy=later)(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
+    assert (first.tune_calls, later.tune_calls) == (1, 0)
+
+
+def test_weights_that_cannot_be_fingerprinted_are_tuned_without_sharing_the_selection(monkeypatch):
+    def cannot_fingerprint(module):
+        raise NotImplementedError("Unsupported tensor")
+
+    monkeypatch.setattr(online_tuned_module, "weights_fingerprint", cannot_fingerprint)
+    OnlineTunedModule(doubling(), "doubling", strategy=sleep_strategy())(torch.tensor([[1.0, 3.0]]))
+    strategy = sleep_strategy()
+    later = OnlineTunedModule(doubling(), "doubling", strategy=strategy)
+
+    actual = later(torch.tensor([[1.0, 3.0]]))
+
+    torch.testing.assert_close(actual, torch.tensor([[2.0, 6.0]]))
+    assert (strategy.tune_calls, len(later.backends)) == (1, 1)
 
 
 def test_reset_drops_the_tuned_shapes():

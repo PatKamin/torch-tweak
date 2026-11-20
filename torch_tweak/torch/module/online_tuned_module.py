@@ -4,6 +4,7 @@
 
 import hashlib
 import json
+import uuid
 from collections.abc import Hashable
 from copy import deepcopy
 from logging import getLogger
@@ -130,7 +131,7 @@ class OnlineTunedModule:
         self._deactivate_active()
         # A strategy can update the shapes of the spec it gets, so the dict key must not be that object.
         graph_spec = GraphSpec(
-            name=_shapes_digest(metadata),
+            name=_digest(metadata.to_dict()),
             input_spec=SampleMetadata.from_inputs(*sample, strict=True),
             output_spec=SampleMetadata.from_outputs(output, strict=True),
         )
@@ -158,10 +159,21 @@ class OnlineTunedModule:
 
     def _cache_dir(self, graph_spec: GraphSpec) -> Path:
         if self._model_key is None:
-            self._model_key = _model_key(self._module)
+            self._model_key = self._compute_model_key()
         cache_dir = torch_tweak_cache_dir() / self._name / self._model_key / graph_spec.name
         secure_mkdir(cache_dir)
         return cache_dir
+
+    def _compute_model_key(self) -> str:
+        try:
+            return _digest([weights_fingerprint(self._module), repr(self._module), tuning_environment()])
+        except Exception:
+            logger.warning(
+                "Cannot fingerprint the weights of %s. Its selection is not shared with other processes.",
+                self._name,
+                exc_info=True,
+            )
+            return f"process-{uuid.uuid4().hex[:16]}"
 
     def _restore(self, graph_spec: GraphSpec, sample: tuple[tuple, dict], cache_dir: Path) -> Backend | None:
         selected = cache_dir / SELECTED_BACKEND_FILE
@@ -191,12 +203,5 @@ class OnlineTunedModule:
         return backend
 
 
-def _shapes_digest(metadata: SampleMetadata) -> str:
-    described = json.dumps(metadata.to_dict(), sort_keys=True, default=str)
-    return hashlib.sha256(described.encode()).hexdigest()[:16]
-
-
-def _model_key(module: nn.Module) -> str:
-    """Keys what a saved backend depends on: the weights, the architecture, and the libraries and hardware."""
-    described = json.dumps([weights_fingerprint(module), repr(module), tuning_environment()], sort_keys=True)
-    return hashlib.sha256(described.encode()).hexdigest()[:16]
+def _digest(described: Any) -> str:
+    return hashlib.sha256(json.dumps(described, sort_keys=True, default=str).encode()).hexdigest()[:16]

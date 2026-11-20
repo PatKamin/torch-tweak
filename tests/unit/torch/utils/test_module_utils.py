@@ -55,6 +55,26 @@ def test_weights_fingerprint_sees_a_change_of_one_value_in_a_large_tensor():
     assert fingerprints[0] != fingerprints[1]
 
 
+def test_weights_fingerprint_tells_apart_shapes_with_the_same_bytes():
+    assert weights_fingerprint(_holding(torch.zeros(2, 3))) != weights_fingerprint(_holding(torch.zeros(3, 2)))
+
+
+def test_weights_fingerprint_tells_apart_dtypes_with_the_same_bytes():
+    zeros = weights_fingerprint(_holding(torch.zeros(2, dtype=torch.float32)))
+
+    assert zeros != weights_fingerprint(_holding(torch.zeros(2, dtype=torch.int32)))
+
+
+def test_weights_fingerprint_ignores_the_memory_layout():
+    transposed = torch.arange(6.0).reshape(2, 3).t()
+
+    assert weights_fingerprint(_holding(transposed)) == weights_fingerprint(_holding(transposed.contiguous()))
+
+
+def test_weights_fingerprint_accepts_an_empty_tensor():
+    assert weights_fingerprint(_holding(torch.zeros(0))) == weights_fingerprint(_holding(torch.zeros(0)))
+
+
 @pytest.fixture
 def simple_model():
     """Create a simple model for testing."""
